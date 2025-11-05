@@ -1,0 +1,43 @@
+[
+  {"text":"📅 ¿En qué año se inauguró el Museo Chiapas (MUCH)?","options":["1994","2003","2010","2015"],"correctIndex":1,"points":10},
+  {"text":"🐆 ¿Cuál es el felino más grande que vive en Chiapas?","options":["Jaguar","Puma","Ocelote","León"],"correctIndex":0,"points":10},
+  {"text":"🐢 ¿Qué animal vive en los ríos y lagunas de Chiapas?","options":["Cocodrilo","Delfín","Foca","Tiburón"],"correctIndex":0,"points":10},
+  {"text":"🕊️ ¿Dónde vive principalmente el quetzal en Chiapas?","options":["Bosque de niebla","Desierto","Pradera","Sabana"],"correctIndex":0,"points":10},
+  {"text":"🏛️ ¿Qué zona arqueológica es famosa por sus murales de colores?","options":["Bonampak","Palenque","Toniná","Chichén Itzá"],"correctIndex":0,"points":10},
+  {"text":"🌲 ¿En qué reserva natural se pueden ver quetzales?","options":["El Triunfo","La Sepultura","La Encrucijada","El Pinacate"],"correctIndex":0,"points":10},
+  {"text":"🏔️ ¿Cuál es el volcán más alto de Chiapas?","options":["Tacaná","Popocatépetl","Nevado de Toluca","Malinche"],"correctIndex":0,"points":10},
+  {"text":"🌊 ¿Cómo se llama el lugar famoso por sus lagos de colores verde y azul?","options":["Lagos de Montebello","Bacalar","Xochimilco","Lagunas de Zempoala"],"correctIndex":0,"points":10},
+  {"text":"🦧 ¿Qué tipo de mono vive en la Selva Lacandona?","options":["Mono araña","Mono titi","Mono ardilla","Mono capuchino"],"correctIndex":0,"points":10},
+  {"text":"🎶 ¿Con qué instrumento musical se identifica a Chiapas?","options":["Marimba","Guitarra","Tambor","Piano"],"correctIndex":0,"points":10},
+  {"text":"🎉 ¿Cómo se llama la fiesta tradicional de Chiapa de Corzo reconocida por la UNESCO?","options":["Parachicos","Guelaguetza","Carnaval de Veracruz","Danza de los Viejitos"],"correctIndex":0,"points":10},
+  {"text":"☕ ¿Qué producto de Chiapas es famoso en todo el mundo?","options":["Café","Vino","Cacao","Té"],"correctIndex":0,"points":10},
+  {"text":"🗣️ ¿Qué lengua indígena se habla mucho en Los Altos de Chiapas?","options":["Tsotsil","Nahuatl","Maya","Zapoteco"],"correctIndex":0,"points":10},
+  {"text":"💧 ¿Qué cañón es un símbolo de Chiapas y tiene un gran río?","options":["Cañón del Sumidero","Cañón del Colorado","Barranca del Cobre","Cañón de Fernández"],"correctIndex":0,"points":10},
+  {"text":"🏛️ ¿Qué gobernante maya de Palenque fue enterrado en el Templo de las Inscripciones?","options":["Moctezuma","Pakal el Grande","Kukulkán","Yax Kuk Mo"],"correctIndex":1,"points":10},
+  {"text":"🏺 ¿Qué zona arqueológica de Chiapas fue rival de Palenque y es famosa por sus esculturas de piedra?","options":["Toniná","Bonampak","Izapa","Uxmal"],"correctIndex":0,"points":10},
+  {"text":"🦅 ¿Qué ave rapaz gigante puede encontrarse en selvas de Chiapas?","options":["Águila pescadora","Águila harpía","Águila real","Cóndor"],"correctIndex":1,"points":10},
+  {"text":"🪶 ¿Qué ave parecida a un pavo está en peligro en Chiapas?","options":["Pava cojolita","Guajolote común","Chachalaca","Pato silvestre"],"correctIndex":0,"points":10},
+  {"text":"⚡ ¿Qué presa hidroeléctrica del río Grijalva está junto al Cañón del Sumidero?","options":["Chicoasén","La Angostura","Malpaso","Peñitas"],"correctIndex":0,"points":10},
+  {"text":"💧 ¿Qué reserva natural costera de Chiapas es famosa por sus manglares?","options":["La Encrucijada","El Vizcaíno","Calakmul","Sian Kaan"],"correctIndex":0,"points":10},
+  {"text":"🌸 ¿Qué familia de plantas es la más diversa en las selvas de Chiapas?","options":["Orquídeas Silvestres","Margaritas","Pastos","Cactus"],"correctIndex":0,"points":10},
+  {"text":"🌐 ¿Qué tecnología usan los planetarios modernos para mostrar imágenes en la cúpula?","options":["Fulldome 360°","Televisión","Proyector plano","Holograma"],"correctIndex":0,"points":10},
+  {"text":"🗓️ ¿En qué año la Fiesta Grande de Chiapa de Corzo (Parachicos) fue reconocida por la UNESCO?","options":["2001","2010","2015","2020"],"correctIndex":1,"points":10},
+  {"text":"🗣️ Además del tsotsil, ¿qué otra lengua maya se habla mucho en Chiapas?","options":["Tseltal","Zapoteco","Rarámuri","Mixteco"],"correctIndex":0,"points":10},
+  {"text":"🦚 Ave que se consideraba extinta en Chiapas, con plumas largas de color turquesa:","options":["Guacamaya","Quetzal","Tucán","Loro"],"correctIndex":1,"points":10},
+  {"text":"🐆 ¿Qué significa la palabra 'BALAM' en español?","options":["Puma","Jaguar","León","Tigre"],"correctIndex":1,"points":10},
+  {"text":"🌳 ¿Qué árbol es conocido como el 'árbol de la vida' en Chiapas?","options":["Ceiba","Pino","Encino","Álamo"],"correctIndex":0,"points":10},
+  {"text":"🌳 ¿Cuántos muros hay en el museo?","options":["12","16","36","24"],"correctIndex":0,"points":10},
+  {"text":"🦖 ¿Cuántos dinosaurios hay en el recorrido Sbeel?","options":["12","16","36","24"],"correctIndex":0,"points":10},
+  {"text":"🦖¿Cual es el nombre del arbol que se encuntra en la fuente ?","options":["Roble","Mago","Guaya"," Aguacate"],"correctIndex":0,"points":10},
+  {"text":"🦖¿Cuantos dinosarios hay aparte del los del recorrido sbeel?","options":["12","5","10"," 16"],"correctIndex":0,"points":10},
+  {"text":"🦖¿Cuantos conductos tiene la fuente?","options":["3","5","2","6"],"correctIndex":0,"points":10},
+  {"text":"🦖¿Cual es el nombre del arbol que se encuntra en la fuente ?","options":["Roble","Mago","Guaya"," Aguacate"],"correctIndex":0,"points":10},
+  {"text":"🦖¿Cual es el nombre del arbol que se encuntra en la fuente ?","options":["Roble","Mago","Guaya"," Aguacate"],"correctIndex":0,"points":10},
+  {"text":"🦖¿Cuantas Salas tiene el much?","options":["2","4","5","6"],"correctIndex":0,"points":10},
+  {"text":"🦖¿Que colores predominan en el much?","options":["Rojo","Azul","Morado","Verde"],"correctIndex":0,"points":10}
+
+
+
+
+
+]
