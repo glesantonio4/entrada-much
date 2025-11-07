@@ -26,18 +26,22 @@
   {"text":"🦚 Ave que se consideraba extinta en Chiapas, con plumas largas de color turquesa:","options":["Guacamaya","Quetzal","Tucán","Loro"],"correctIndex":1,"points":10},
   {"text":"🐆 ¿Qué significa la palabra 'BALAM' en español?","options":["Puma","Jaguar","León","Tigre"],"correctIndex":1,"points":10},
   {"text":"🌳 ¿Qué árbol es conocido como el 'árbol de la vida' en Chiapas?","options":["Ceiba","Pino","Encino","Álamo"],"correctIndex":0,"points":10},
-  {"text":"🌳 ¿Cuántos muros hay en el museo?","options":["12","16","36","24"],"correctIndex":0,"points":10},
-  {"text":"🦖 ¿Cuántos dinosaurios hay en el recorrido Sbeel?","options":["12","16","36","24"],"correctIndex":0,"points":10},
-  {"text":"🦖¿Cual es el nombre del arbol que se encuntra en la fuente ?","options":["Roble","Mago","Guaya"," Aguacate"],"correctIndex":0,"points":10},
+  {"text":"🌳 ¿Cuántos muros hay en el museo?","options":["12","64","36","24"],"correctIndex":1,"points":10},
+  {"text":"🦖 ¿Cuántos dinosaurios hay en el recorrido Sbeel?","options":["12","16","36","24"],"correctIndex":1,"points":10},
+  {"text":"🦖¿Cual es el nombre del arbol que se encuntra en la fuente ?","options":["Roble","Mago","Guaya"," Aguacate"],"correctIndex":3,"points":10},
   {"text":"🦖¿Cuantos dinosarios hay aparte del los del recorrido sbeel?","options":["12","5","10"," 16"],"correctIndex":0,"points":10},
-  {"text":"🦖¿Cuantos conductos tiene la fuente?","options":["3","5","2","6"],"correctIndex":0,"points":10},
-  {"text":"🦖¿Cual es el nombre del arbol que se encuntra en la fuente ?","options":["Roble","Mago","Guaya"," Aguacate"],"correctIndex":0,"points":10},
-  {"text":"🦖¿Cual es el nombre del arbol que se encuntra en la fuente ?","options":["Roble","Mago","Guaya"," Aguacate"],"correctIndex":0,"points":10},
-  {"text":"🦖¿Cuantas Salas tiene el much?","options":["2","4","5","6"],"correctIndex":0,"points":10},
-  {"text":"🦖¿Que colores predominan en el much?","options":["Rojo","Azul","Morado","Verde"],"correctIndex":0,"points":10}
+  {"text":"🦖¿Cuantos conductos tiene la fuente?","options":["3","5","7","6"],"correctIndex":2,"points":10},
+  {"text":"🦖¿Cual es el nombre del arbol que se encuntra en la fuente ?","options":["Roble","Mago","Guaya"," Aguacate"],"correctIndex":3,"points":10},
+  {"text":"🦖¿Cuantas Salas tiene el much?","options":["2","4","3","6"],"correctIndex":2,"points":10},
+  {"text":"🦖¿Que colores predominan en el much?","options":["Azul cielo,rosa,verde","Azul,amarillo,verde","Morado,rosa,blanco","Verde,cafe,negro"],"correctIndex":0,"points":10}
 
 
 
 
 
 ]
+
+
+
+]
+
