@@ -2,33 +2,74 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Test MUCH • Conexión Supabase</title>
+  <title>MUCH • Jugadas recientes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; padding:24px }
+    h1 { margin-bottom: 8px }
+    #status { margin-bottom: 16px }
+    table { width:100%; border-collapse:collapse }
+    th,td { padding:10px; border-bottom:1px solid #eee; font-size:14px }
+    .pill { padding:2px 8px; border-radius:999px; background:#f3f4f6; display:inline-block }
+  </style>
 </head>
-<body style="font-family: system-ui, Arial; padding:24px">
-  <h1>Test de conexión a Supabase</h1>
-  <p id="out">Conectando...</p>
+<body>
+  <h1>Jugadas recientes</h1>
+  <p id="status">Cargando…</p>
+  <table id="tabla" style="display:none">
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Sala ID</th>
+        <th>Participante</th>
+        <th>Puntaje</th>
+        <th>Correctas / Total</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
 
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+   const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
-
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const out = document.getElementById('out');
 
-    try {
-      const { count, error } = await supabase
+    const status = document.getElementById('status');
+    const tabla = document.getElementById('tabla');
+    const tbody = document.getElementById('tbody');
+
+    const fmt = iso => iso ? new Date(iso).toLocaleString() : '—';
+
+    async function cargar() {
+      const { data, error } = await supabase
         .from('quizzes')
-        .select('id', { count: 'exact', head: true });
+        .select('id, sala_id, participante_id, started_at, puntaje_total, num_correctas, num_preguntas')
+        .order('started_at', { ascending: false })
+        .limit(20);
 
-      if (error) throw error;
-      out.textContent = `✅ OK conectado. Quizzes en BD: ${count}`;
-    } catch (e) {
-      console.error(e);
-      out.textContent = '❌ Error: ' + (e?.message || e);
+      if (error) {
+        status.textContent = 'Error cargando: ' + error.message;
+        console.error(error);
+        return;
+      }
+
+      status.style.display = 'none';
+      tabla.style.display = '';
+      tbody.innerHTML = data.map(q => `
+        <tr>
+          <td>${fmt(q.started_at)}</td>
+          <td><span class="pill">${q.sala_id ?? '—'}</span></td>
+          <td>${q.participante_id?.slice(0,8) ?? '—'}</td>
+          <td>${q.puntaje_total ?? 0}</td>
+          <td>${q.num_correctas ?? 0} / ${q.num_preguntas ?? 0}</td>
+        </tr>
+      `).join('');
     }
+
+    cargar();
   </script>
 </body>
 </html>
+
