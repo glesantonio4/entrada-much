@@ -10,7 +10,7 @@ let QUESTIONS = [];
 
 /* ==== SUPABASE: init + helpers (no altera tu UI) ==== */
 const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';         // 👈 y esto
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
 let supabase = null;
 
 async function initSupabase() {
@@ -99,6 +99,27 @@ async function startQuizInDB() {
   } catch (e) {
     console.warn('startQuizInDB error:', e?.message || e);
     return null;
+  }
+}
+
+/* ✅ NUEVO: Cierra el quiz en BD al terminar (sin bloquear la UI) */
+async function endQuizInDB({ puntaje_total, num_correctas, num_preguntas }) {
+  try {
+    await initSupabase();
+    const quizId = sessionStorage.getItem('much_current_quiz_id');
+    if (!quizId) return;
+    const { error } = await supabase
+      .from('quizzes')
+      .update({
+        puntaje_total,
+        num_correctas,
+        num_preguntas,
+        finished_at: new Date().toISOString()
+      })
+      .eq('id', quizId);
+    if (error) console.warn('endQuizInDB error:', error.message);
+  } catch (e) {
+    console.warn('endQuizInDB ex:', e?.message || e);
   }
 }
 
@@ -329,6 +350,14 @@ class UIManager{
 
     if(s.idx>=QUESTIONS.length){
       const allCorrect = s.correct===QUESTIONS.length;
+
+      /* ✅ NUEVO: cerrar quiz en BD (no toca tu UI) */
+      endQuizInDB({
+        puntaje_total: Math.round((s.correct / QUESTIONS.length) * 100),
+        num_correctas: s.correct,
+        num_preguntas: QUESTIONS.length
+      });
+
       if(allCorrect){
         const prize = this.prizeMgr.random();
         this.currentPrize = prize;
@@ -466,3 +495,4 @@ document.addEventListener('DOMContentLoaded', ()=>{
     start();
   }
 });
+
