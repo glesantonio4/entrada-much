@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Test MUCH • Conexión Supabase</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="font-family: system-ui, Arial; padding:24px">
+  <h1>Test de conexión a Supabase</h1>
+  <p id="out">Conectando...</p>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const out = document.getElementById('out');
+
+    try {
+      const { count, error } = await supabase
+        .from('quizzes')
+        .select('id', { count: 'exact', head: true });
+
+      if (error) throw error;
+      out.textContent = `✅ OK conectado. Quizzes en BD: ${count}`;
+    } catch (e) {
+      console.error(e);
+      out.textContent = '❌ Error: ' + (e?.message || e);
+    }
+  </script>
+</body>
+</html>
