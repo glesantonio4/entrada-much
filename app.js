@@ -1,3 +1,79 @@
+/* ==== SUPABASE: init + helpers ==== */
+const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+const SUPABASE_ANON_KEY = 'TU_ANON_KEY_COMPLETA_AQUI';
+let supabase = null;
+
+async function initSupabase() {
+  if (supabase) return supabase;
+  const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return supabase;
+}
+
+// Un ID de dispositivo simple para identificar al visitante (y, si queremos, crear un participante)
+const DEVICE_KEY = 'much_device_id';
+if (!localStorage.getItem(DEVICE_KEY)) {
+  localStorage.setItem(DEVICE_KEY, crypto.randomUUID());
+}
+
+// Buscar una sala para usar (por ahora, toma la primera disponible)
+async function getAnySalaId() {
+  await initSupabase();
+  const { data, error } = await supabase.from('salas').select('id').limit(1);
+  if (error || !data?.length) return null;
+  return data[0].id;
+}
+
+// (Opcional) Asegurar participante. Si tu tabla participantes tiene una columna device_id, se puede usar.
+async function ensureParticipanteId() {
+  await initSupabase();
+  const device = localStorage.getItem(DEVICE_KEY);
+
+  // Intenta buscar participante por device_id
+  let { data: found, error: errFind } = await supabase
+    .from('participantes')
+    .select('id, device_id')
+    .eq('device_id', device)
+    .limit(1);
+
+  if (!errFind && found?.length) return found[0].id;
+
+  // Si no existe, créalo (ajusta columnas si tu esquema exige otras)
+  const { data: created, error: errIns } = await supabase
+    .from('participantes')
+    .insert({ device_id: device })
+    .select('id')
+    .single();
+
+  if (errIns) { console.warn('No se pudo crear participante:', errIns.message); return null; }
+  return created.id;
+}
+
+// Crea un registro en quizzes cuando empieza el juego
+async function startQuizInDB() {
+  await initSupabase();
+  const sala_id = await getAnySalaId();          // mejora: mapear SALA->id cuando nos pases la columna nombre
+  const participante_id = await ensureParticipanteId();
+
+  const payload = {
+    sala_id,
+    participante_id,
+    started_at: new Date().toISOString(),
+    num_preguntas: NUM_QUESTIONS
+  };
+
+  const { data, error } = await supabase
+    .from('quizzes')
+    .insert(payload)
+    .select('id')
+    .single();
+
+  if (error) { console.error('No se pudo crear quiz:', error.message); return null; }
+  sessionStorage.setItem('much_current_quiz_id', data.id);
+  return data.id;
+}
+
+
 /* =================== Datos =================== */
 const params = new URLSearchParams(location.search);
 const SALA = params.get('sala') || 'Exploración';
@@ -288,16 +364,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const startBtn = document.getElementById('startBtn');
   const prizeMgr = new PrizeManager();
 
-  const start = async ()=>{
-    try{
-      await loadPreguntas();
-      if (welcome) welcome.classList.add('hidden');
-      if (quizShell) quizShell.classList.remove('hidden');
-      new UIManager({ elements, sound, confetti, prizeMgr });
-    }catch(err){
-      console.error('No se pudo iniciar el quiz:', err);
-    }
-  };
+  const start = async () => {
+  try{
+    await loadPreguntas();
+
+    // ⬇️ NUEVO: crear registro en Supabase
+    const quizId = await startQuizInDB();
+    console.log('Quiz creado:', quizId);
+
+    if (welcome) welcome.classList.add('hidden');
+    if (quizShell) quizShell.classList.remove('hidden');
+    new UIManager({ elements, sound, confetti, prizeMgr });
+  }catch(err){
+    console.error('No se pudo iniciar el quiz:', err);
+  }
+}
 
   if (startBtn && welcome) {
     startBtn.addEventListener('click', (e)=>{ e.preventDefault(); start(); });
