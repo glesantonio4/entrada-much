@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Write test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="font-family: system-ui; padding:24px">
+  <h1>Prueba de INSERT en quizzes</h1>
+  <pre id="out">Ejecutando…</pre>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const out = document.getElementById('out');
+
+    // Usamos IDs que YA existen (vistos en tu captura) para evitar errores de FK
+    const sala_id = '4bdfbf5f-1a55-4952-be0c-9d487550fb0c';
+    const participante_id = '71bf56d1-6aa5-4401-85f5-1b634e...'; // pega completo el que ves en tus filas
+
+    (async () => {
+      try {
+        const payload = {
+          sala_id,
+          participante_id,
+          started_at: new Date().toISOString(),
+          num_preguntas: 6
+        };
+
+        const { data, error } = await supabase
+          .from('quizzes')
+          .insert(payload)
+          .select('id, started_at')
+          .single();
+
+        if (error) {
+          out.textContent = '❌ Error: ' + error.message;
+          console.error(error);
+        } else {
+          out.textContent = '✅ Insertado: ' + JSON.stringify(data, null, 2);
+        }
+      } catch (e) {
+        out.textContent = '❌ Excepción: ' + (e?.message || e);
+        console.error(e);
+      }
+    })();
+  </script>
+</body>
+</html>
