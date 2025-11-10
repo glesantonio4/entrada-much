@@ -42,31 +42,83 @@
 
     const fmt = iso => iso ? new Date(iso).toLocaleString() : '—';
 
-    async function cargar() {
-      const { data, error } = await supabase
-        .from('quizzes')
-        .select('id, sala_id, participante_id, started_at, puntaje_total, num_correctas, num_preguntas')
-        .order('started_at', { ascending: false })
-        .limit(20);
+   async function cargar() {
+  // 1) Quizzes
+  const { data: quizzes, error } = await supabase
+    .from('quizzes')
+    .select('id, sala_id, participante_id, started_at, puntaje_total, num_correctas, num_preguntas')
+    .order('started_at', { ascending: false })
+    .limit(20);
 
-      if (error) {
-        status.textContent = 'Error cargando: ' + error.message;
-        console.error(error);
-        return;
+  if (error) {
+    status.textContent = 'Error cargando quizzes: ' + error.message;
+    console.error(error); 
+    return;
+  }
+
+  // Si no hay registros
+  if (!quizzes?.length) {
+    status.textContent = 'Sin jugadas aún.';
+    return;
+  }
+
+  const ids = quizzes.map(q => q.id);
+
+  // 2) Respuestas de esos quizzes para calcular correctas/total
+  let respByQuiz = {};
+  {
+    const { data: resps, error: errR } = await supabase
+      .from('respuestas')
+      .select('quiz_id, es_correcta')
+      .in('quiz_id', ids);
+
+    if (!errR && resps) {
+      // Agrupamos en un diccionario
+      for (const r of resps) {
+        const arr = respByQuiz[r.quiz_id] ?? (respByQuiz[r.quiz_id] = []);
+        arr.push(r);
       }
-
-      status.style.display = 'none';
-      tabla.style.display = '';
-      tbody.innerHTML = data.map(q => `
-        <tr>
-          <td>${fmt(q.started_at)}</td>
-          <td><span class="pill">${q.sala_id ?? '—'}</span></td>
-          <td>${q.participante_id?.slice(0,8) ?? '—'}</td>
-          <td>${q.puntaje_total ?? 0}</td>
-          <td>${q.num_correctas ?? 0} / ${q.num_preguntas ?? 0}</td>
-        </tr>
-      `).join('');
     }
+  }
+
+  // 3) Boleto/premio/folio de esos quizzes
+  let ticketByQuiz = {};
+  {
+    const { data: bols, error: errB } = await supabase
+      .from('boletos') // si tu tabla se llama diferente, cámbiala aquí
+      .select('quiz_id, folio, premio')
+      .in('quiz_id', ids);
+
+    if (!errB && bols) {
+      for (const b of bols) ticketByQuiz[b.quiz_id] = b;
+    }
+  }
+
+  // 4) Render
+  status.style.display = 'none';
+  tabla.style.display = '';
+  tbody.innerHTML = quizzes.map(q => {
+    // stats desde respuestas si no están calculadas en la fila
+    const resp = respByQuiz[q.id] ?? [];
+    const total = q.num_preguntas ?? (resp.length || 0);
+    const correctas =
+      q.num_correctas ??
+      (resp.filter(r => r.es_correcta === true).length || 0);
+    const puntaje =
+      q.puntaje_total ??
+      (total > 0 ? Math.round((correctas / total) * 100) : 0);
+
+    const tk = ticketByQuiz[q.id] || {};
+
+    return `<tr>
+      <td>${new Date(q.started_at).toLocaleString()}</td>
+      <td><span class="pill">${q.sala_id ?? '—'}</span></td>
+      <td>${q.participante_id ? String(q.participante_id).slice(0,8) : '—'}</td>
+      <td>${puntaje}</td>
+      <td>${correctas} / ${total} ${tk.folio ? ` • <strong>${tk.premio}</strong> • ${tk.folio}` : ''}</td>
+    </tr>`;
+  }).join('');
+}
 
     cargar();
   </script>
