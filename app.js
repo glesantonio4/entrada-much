@@ -1,6 +1,16 @@
-/* ==== SUPABASE: init + helpers ==== */
+/* =================== Datos =================== */
+const params = new URLSearchParams(location.search);
+const SALA = params.get('sala') || 'Exploración';
+// Las preguntas se cargan desde `preguntas.json` en lugar de estar embebidas.
+const NUM_QUESTIONS = 6;
+const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+
+// Placeholder: QUESTIONS se inicializará tras cargar el JSON.
+let QUESTIONS = [];
+
+/* ==== SUPABASE: init + helpers (no altera tu UI) ==== */
 const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';         // 👈 y esto
 let supabase = null;
 
 async function initSupabase() {
@@ -10,43 +20,46 @@ async function initSupabase() {
   return supabase;
 }
 
-// Un ID de dispositivo simple para identificar al visitante (y, si queremos, crear un participante)
-const DEVICE_KEY = 'much_device_id';
-if (!localStorage.getItem(DEVICE_KEY)) {
-  localStorage.setItem(DEVICE_KEY, crypto.randomUUID());
-}
-
-// Buscar una sala para usar (por ahora, toma la primera disponible)
+// Toma un sala_id válido (de 'salas' o de 'quizzes') sin romper si no existe el nombre de sala
 async function getAnySalaId() {
   await initSupabase();
-  const { data, error } = await supabase.from('salas').select('id').limit(1);
-  if (error || !data?.length) return null;
-  return data[0].id;
+  // 1) intenta desde 'salas'
+  let { data, error } = await supabase.from('salas').select('id').limit(1);
+  if (!error && data?.length) return data[0].id;
+
+  // 2) fallback: toma sala_id usado en algún quiz
+  ({ data, error } = await supabase
+    .from('quizzes')
+    .select('sala_id')
+    .not('sala_id','is', null)
+    .order('started_at', { ascending: false })
+    .limit(1));
+  if (!error && data?.length) return data[0].sala_id;
+
+  return null; // si no hay, no tronamos
 }
 
-// (Opcional) Asegurar participante. Si tu tabla participantes tiene una columna device_id, se puede usar.
+// Garantiza un participante_id (usa existente o crea vacío)
 async function ensureParticipanteId() {
   await initSupabase();
 
-  // 1) Usa un participante ya usado en quizzes (si existe)
+  // 1) usa uno ya usado en quizzes
   let { data, error } = await supabase
     .from('quizzes')
     .select('participante_id')
     .not('participante_id', 'is', null)
     .order('started_at', { ascending: false })
     .limit(1);
-
   if (!error && data?.length) return data[0].participante_id;
 
-  // 2) Toma cualquiera de la tabla participantes
+  // 2) toma cualquiera de la tabla participantes
   ({ data, error } = await supabase
     .from('participantes')
     .select('id')
     .limit(1));
-
   if (!error && data?.length) return data[0].id;
 
-  // 3) Crea uno vacío (si tu esquema lo permite)
+  // 3) crea uno vacío (si tu esquema lo permite)
   const ins = await supabase
     .from('participantes')
     .insert({})
@@ -60,60 +73,110 @@ async function ensureParticipanteId() {
   return ins.data.id;
 }
 
-  // Si no existe, créalo (ajusta columnas si tu esquema exige otras)
-  const { data: created, error: errIns } = await supabase
-    .from('participantes')
-    .insert({ device_id: device })
-    .select('id')
-    .single();
-
-  if (errIns) { console.warn('No se pudo crear participante:', errIns.message); return null; }
-  return created.id;
-}
-
-// Crea un registro en quizzes cuando empieza el juego
+// Crea un registro en quizzes cuando empieza el juego (no afecta tu UI)
 async function startQuizInDB() {
-  await initSupabase();
-  const sala_id = await getAnySalaId();          // mejora: mapear SALA->id cuando nos pases la columna nombre
-  const participante_id = await ensureParticipanteId();
+  try {
+    await initSupabase();
+    const sala_id = await getAnySalaId();
+    const participante_id = await ensureParticipanteId();
 
-  const payload = {
-    sala_id,
-    participante_id,
-    started_at: new Date().toISOString(),
-    num_preguntas: NUM_QUESTIONS
-  };
+    const payload = {
+      sala_id,
+      participante_id,
+      started_at: new Date().toISOString(),
+      num_preguntas: NUM_QUESTIONS
+    };
 
-  const { data, error } = await supabase
-    .from('quizzes')
-    .insert(payload)
-    .select('id')
-    .single();
+    const { data, error } = await supabase
+      .from('quizzes')
+      .insert(payload)
+      .select('id')
+      .single();
 
-  if (error) { console.error('No se pudo crear quiz:', error.message); return null; }
-  sessionStorage.setItem('much_current_quiz_id', data.id);
-  return data.id;
+    if (error) { console.warn('No se pudo crear quiz:', error.message); return null; }
+    sessionStorage.setItem('much_current_quiz_id', data.id);
+    return data.id;
+  } catch (e) {
+    console.warn('startQuizInDB error:', e?.message || e);
+    return null;
+  }
 }
 
-
-/* =================== Datos =================== */
-const params = new URLSearchParams(location.search);
-const SALA = params.get('sala') || 'Exploración';
-// Las preguntas se cargan desde `preguntas.json` en lugar de estar embebidas.
-const NUM_QUESTIONS = 6;
-const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
-
-// Placeholder: QUESTIONS se inicializará tras cargar el JSON.
-let QUESTIONS = [];
-
-// Función para cargar preguntas desde el archivo preguntas.json
+/* =================== Cargar preguntas (normalizado) =================== */
+// Función para cargar preguntas desde el archivo preguntas.json (acepta varios formatos)
 async function loadPreguntas(){
   try{
     const resp = await fetch('preguntas.json', { cache: 'no-store' });
     if(!resp.ok) throw new Error('No se pudo cargar preguntas.json: ' + resp.status);
-    const bank = await resp.json();
-    if(!Array.isArray(bank) || bank.length===0) throw new Error('preguntas.json no contiene un array de preguntas');
-    QUESTIONS = shuffle(bank).slice(0, NUM_QUESTIONS);
+    let bank = await resp.json();
+
+    // 1) Si viene por salas (objeto con arrays), intenta usar la sala actual; si no, toma el primer array.
+    if (!Array.isArray(bank)) {
+      const keys = Object.keys(bank || {});
+      if (keys.length && bank[SALA]) {
+        bank = bank[SALA];
+      } else if (keys.length) {
+        const firstKey = keys.find(k => Array.isArray(bank[k]));
+        if (firstKey) bank = bank[firstKey];
+      }
+    }
+
+    if(!Array.isArray(bank) || bank.length===0)
+      throw new Error('preguntas.json no contiene un array de preguntas');
+
+    // 2) Normaliza objetos a { text, options[], correctIndex, points, desc? }
+    const normalize = (it) => {
+      const text = it.text ?? it.pregunta ?? it.enunciado ?? 'Pregunta sin texto';
+      const desc = it.desc ?? it.descripcion ?? '';
+      let options = it.options ?? it.opciones ?? it.respuestas ?? [];
+      let correctIndex = it.correctIndex ?? it.correcta_index;
+
+      // Si options es array de objetos {texto, correcta}
+      if (Array.isArray(options) && typeof options[0] === 'object') {
+        const idx = options.findIndex(o => o.correcta === true || o.esCorrecta === true);
+        if (correctIndex == null && idx >= 0) correctIndex = idx;
+        options = options.map(o => o.text ?? o.texto ?? o.label ?? String(o));
+      }
+
+      // Si correcta es texto → buscar índice
+      if (correctIndex == null && typeof it.correcta === 'string') {
+        const idx2 = options.findIndex(o => String(o).trim() === String(it.correcta).trim());
+        if (idx2 >= 0) correctIndex = idx2;
+      }
+
+      // Si hay respuesta numérica (1..n)
+      if (correctIndex == null && (it.respuesta || it.respuesta_correcta)) {
+        const num = (it.respuesta ?? it.respuesta_correcta) - 1;
+        if (!Number.isNaN(num)) correctIndex = num;
+      }
+
+      const points = it.points ?? it.puntos ?? 1;
+
+      if (!Array.isArray(options) || options.length === 0) {
+        console.warn('Pregunta sin opciones:', it);
+        options = ['(sin opciones)'];
+        correctIndex = 0;
+      }
+      if (correctIndex == null || correctIndex < 0 || correctIndex >= options.length) {
+        correctIndex = 0;
+      }
+      return { text, options, correctIndex, points, desc };
+    };
+
+    // 3) Filtro opcional por sala si el JSON trae campo sala/sala_codigo por pregunta
+    const bySala = bank.filter(q =>
+      !q?.sala && !q?.sala_codigo ? true :
+      (q.sala === SALA || q.sala_codigo === SALA)
+    );
+
+    const pool = bySala.length ? bySala : bank;
+    const normalized = pool.map(normalize);
+
+    // 4) Mezcla y selecciona
+    QUESTIONS = shuffle(normalized).slice(0, NUM_QUESTIONS);
+
+    // Debug útil
+    console.log('[loadPreguntas] SALA=', SALA, 'pool=', pool.length, 'usadas=', QUESTIONS.length, QUESTIONS);
     return QUESTIONS;
   }catch(err){
     console.error(err);
@@ -126,7 +189,6 @@ async function loadPreguntas(){
 class SoundFX{
   constructor(toggleEl){ this.toggleEl = toggleEl; this.ctx = null; }
   beep(freq=880, dur=0.15, type='sine', vol=0.08){
-    // ✅ Soporta ausencia del switch de sonido (portada o páginas sin el control)
     if (this.toggleEl && !this.toggleEl.checked) return;
     this.ctx = this.ctx || new (window.AudioContext||window.webkitAudioContext)();
     const o=this.ctx.createOscillator(), g=this.ctx.createGain();
@@ -386,26 +448,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const startBtn = document.getElementById('startBtn');
   const prizeMgr = new PrizeManager();
 
-  const start = async () => {
-  try{
-    await loadPreguntas();
-
-    // ⬇️ NUEVO: crear registro en Supabase
-    const quizId = await startQuizInDB();
-    console.log('Quiz creado:', quizId);
-
-    if (welcome) welcome.classList.add('hidden');
-    if (quizShell) quizShell.classList.remove('hidden');
-    new UIManager({ elements, sound, confetti, prizeMgr });
-  }catch(err){
-    console.error('No se pudo iniciar el quiz:', err);
-  }
-}
+  const start = async ()=>{
+    try{
+      await loadPreguntas();               // ✅ ahora normaliza y llena QUESTIONS
+      await startQuizInDB();               // ✅ crea un quiz (no altera tu UI)
+      if (welcome) welcome.classList.add('hidden');
+      if (quizShell) quizShell.classList.remove('hidden');
+      new UIManager({ elements, sound, confetti, prizeMgr });
+    }catch(err){
+      console.error('No se pudo iniciar el quiz:', err);
+    }
+  };
 
   if (startBtn && welcome) {
     startBtn.addEventListener('click', (e)=>{ e.preventDefault(); start(); });
   } else {
-    // No hay portada en esta página → inicia solo
     start();
   }
 });
