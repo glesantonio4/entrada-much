@@ -27,16 +27,38 @@ async function getAnySalaId() {
 // (Opcional) Asegurar participante. Si tu tabla participantes tiene una columna device_id, se puede usar.
 async function ensureParticipanteId() {
   await initSupabase();
-  const device = localStorage.getItem(DEVICE_KEY);
 
-  // Intenta buscar participante por device_id
-  let { data: found, error: errFind } = await supabase
-    .from('participantes')
-    .select('id, device_id')
-    .eq('device_id', device)
+  // 1) Usa un participante ya usado en quizzes (si existe)
+  let { data, error } = await supabase
+    .from('quizzes')
+    .select('participante_id')
+    .not('participante_id', 'is', null)
+    .order('started_at', { ascending: false })
     .limit(1);
 
-  if (!errFind && found?.length) return found[0].id;
+  if (!error && data?.length) return data[0].participante_id;
+
+  // 2) Toma cualquiera de la tabla participantes
+  ({ data, error } = await supabase
+    .from('participantes')
+    .select('id')
+    .limit(1));
+
+  if (!error && data?.length) return data[0].id;
+
+  // 3) Crea uno vacío (si tu esquema lo permite)
+  const ins = await supabase
+    .from('participantes')
+    .insert({})
+    .select('id')
+    .single();
+
+  if (ins.error) {
+    console.warn('No se pudo crear participante:', ins.error.message);
+    return null;
+  }
+  return ins.data.id;
+}
 
   // Si no existe, créalo (ajusta columnas si tu esquema exige otras)
   const { data: created, error: errIns } = await supabase
