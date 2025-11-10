@@ -11,18 +11,41 @@
 
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+    const out = document.getElementById('out');
 
     const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    const out = document.getElementById('out');
 
-    // Usamos IDs que YA existen (vistos en tu captura) para evitar errores de FK
-    const sala_id = '4bdfbf5f-1a55-4952-be0c-9d487550fb0c';
-    const participante_id = '71bf56d1-6aa5-4401-85f5-1b634e...'; // pega completo el que ves en tus filas
+    const DEVICE_KEY = 'much_device_id';
+    if (!localStorage.getItem(DEVICE_KEY)) localStorage.setItem(DEVICE_KEY, crypto.randomUUID());
+
+    async function getSalaId() {
+      const { data, error } = await supabase.from('salas').select('id').limit(1);
+      if (error || !data?.length) throw new Error('No hay salas disponibles');
+      return data[0].id;
+    }
+
+    async function getOrCreateParticipante() {
+      const device = localStorage.getItem(DEVICE_KEY);
+      let { data, error } = await supabase
+        .from('participantes').select('id').eq('device_id', device).limit(1);
+      if (error) throw error;
+      if (data?.length) return data[0].id;
+
+      const ins = await supabase
+        .from('participantes').insert({ device_id: device }).select('id').single();
+      if (ins.error) throw ins.error;
+      return ins.data.id;
+    }
 
     (async () => {
       try {
+        const [sala_id, participante_id] = await Promise.all([
+          getSalaId(),
+          getOrCreateParticipante(),
+        ]);
+
         const payload = {
           sala_id,
           participante_id,
@@ -36,15 +59,10 @@
           .select('id, started_at')
           .single();
 
-        if (error) {
-          out.textContent = '❌ Error: ' + error.message;
-          console.error(error);
-        } else {
-          out.textContent = '✅ Insertado: ' + JSON.stringify(data, null, 2);
-        }
+        if (error) { out.textContent = '❌ Error: ' + error.message; return; }
+        out.textContent = '✅ Insertado: ' + JSON.stringify(data, null, 2);
       } catch (e) {
         out.textContent = '❌ Excepción: ' + (e?.message || e);
-        console.error(e);
       }
     })();
   </script>
