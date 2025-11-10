@@ -1,6 +1,6 @@
 /* ==== SUPABASE: init + helpers ==== */
 const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
-const SUPABASE_ANON_KEY = 'TU_ANON_KEY_COMPLETA_AQUI';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
 let supabase = null;
 
 async function initSupabase() {
