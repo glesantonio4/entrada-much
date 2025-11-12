@@ -201,5 +201,91 @@
     el('tTel').textContent    = tel;
   })();
   </script>
+
+  <!-- ✅ AGREGADO: sincroniza con Supabase solo si hace falta crear el boleto -->
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // 🔧 TUS CLAVES
+const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+    
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Lee datos ya renderizados / querystring / localStorage sin tocar tu UI
+    const qs = new URLSearchParams(location.search);
+    const folio = qs.get('folio') || (()=>{
+      try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').folio)||'' } catch(_){ return '' }
+    })();
+
+    const correo = qs.get('correo') || (()=>{
+      try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').correo)||'' } catch(_){ return '' }
+    })();
+
+    const nombre = qs.get('nombre') || (()=>{
+      try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').nombre)||'' } catch(_){ return '' }
+    })();
+
+    const telefono = qs.get('telefono') || (()=>{
+      try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').telefono)||'' } catch(_){ return '' }
+    })();
+
+    // premio_id desde localStorage (si el juego lo guardó)
+    const prizeData = (()=>{
+      try { return JSON.parse(localStorage.getItem('much_quiz_prize')||'{}'); } catch(_){ return {}; }
+    })();
+    const premio_id = prizeData?.premio_id || null;
+
+    // Solo intentamos registrar si tenemos al menos folio y correo
+    (async ()=>{
+      try{
+        if (!folio || !correo) {
+          console.warn('Sync Supabase omitido: falta folio o correo.');
+          return;
+        }
+
+        // 1) ¿Ya existe el boleto?
+        const { data: bExist, error: eB1 } = await sb.from('boletos').select('id').eq('folio', folio).maybeSingle();
+        if (eB1) { console.warn('Error consultando boleto:', eB1.message); return; }
+        if (bExist) { /* ya está en DB */ return; }
+
+        // 2) Buscar/crear participante por correo
+        let participante_id = null;
+        const { data: pExist, error: eP1 } = await sb.from('participantes').select('id').eq('correo', correo).maybeSingle();
+        if (eP1) { console.warn('Error consultando participante:', eP1.message); return; }
+
+        if (pExist) {
+          participante_id = pExist.id;
+          // actualizar datos básicos (no crítico si falla)
+          await sb.from('participantes').update({ nombre, telefono }).eq('id', participante_id);
+        } else {
+          const { data: pNew, error: eP2 } = await sb.from('participantes')
+            .insert([{ nombre, correo, telefono }]).select().maybeSingle();
+          if (eP2 || !pNew) { console.warn('No se pudo crear participante'); return; }
+          participante_id = pNew.id;
+        }
+
+        // 3) Insertar boleto (si hay premio_id). Si no hay, no rompemos nada.
+        if (!premio_id) {
+          console.warn('No se insertó en boletos porque falta premio_id (flujo visual sigue OK).');
+          return;
+        }
+
+        const hoyISO = new Date().toISOString().slice(0,10);
+        const { error: eB2 } = await sb.from('boletos').insert([{
+          folio,
+          participante_id,
+          premio_id,
+          valido_desde: hoyISO,
+          created_at: new Date().toISOString()
+        }]);
+
+        if (eB2) console.warn('Error insertando boleto:', eB2.message);
+      }catch(err){
+        console.warn('Sync Supabase falló:', err?.message || err);
+      }
+    })();
+  </script>
+  <!-- ❗Fin del agregado; no se modificó tu UI ni tu lógica de impresión -->
 </body>
 </html>
