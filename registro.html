@@ -20,18 +20,10 @@
       background:var(--card-bg); border-radius:var(--card-br); box-shadow:var(--shadow-soft);
       padding:24px 22px 26px; width:100%; max-width:520px; border:1px solid var(--gris-300);
     }
-
-    /* ——— Logo responsive ——— */
     .logo-wrap{ display:flex; justify-content:center; margin-bottom:10px; }
-    .brand-logo{
-      width: clamp(120px, 42vw, 220px);
-      max-width: 70%;
-      height: auto;
-      display:block;
-      image-rendering:-webkit-optimize-contrast;
-      -ms-interpolation-mode: bicubic;
-      filter: drop-shadow(0 2px 8px rgba(0,0,0,.35));
-    }
+    .brand-logo{ width: clamp(120px, 42vw, 220px); max-width: 70%; height: auto; display:block;
+      image-rendering:-webkit-optimize-contrast; -ms-interpolation-mode: bicubic;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,.35)); }
     .brand-logo.badge{ background:#fff; border-radius:12px; padding:6px 10px; }
 
     h2{ text-align:center; margin:8px 0 14px; color:var(--fucsia); line-height:1.2; }
@@ -39,10 +31,8 @@
 
     .form-group{ margin-bottom:18px; }
     .form-group label{ font-weight:700; display:block; margin-bottom:8px; color:#e5e7eb; }
-    .form-group input{
-      width:100%; padding:12px; border-radius:10px; border:1px solid var(--gris-300);
-      font-size:16px; background:#0f1218; color:#fff; outline:none;
-    }
+    .form-group input{ width:100%; padding:12px; border-radius:10px; border:1px solid var(--gris-300);
+      font-size:16px; background:#0f1218; color:#fff; outline:none; }
     .form-group input:focus{ border-color:var(--turquesa); box-shadow:0 0 0 3px rgba(0,201,183,.2); }
     .hint{ font-size:.85rem; color:#9ca3af; margin-top:6px; }
     .error-msg{ font-size:.85rem; color:var(--error); margin-top:6px; display:none; }
@@ -75,35 +65,24 @@
     <form id="registroForm" autocomplete="off" novalidate>
       <div class="form-group">
         <label for="nombre">Nombre completo</label>
-        <input
-          type="text" id="nombre" name="nombre" required
-          inputmode="text" minlength="6" maxlength="80"
-          placeholder="Ej. Celi Glescanni"
-          title="Escribe tu nombre completo (mínimo 2 palabras)."
-        />
+        <input type="text" id="nombre" name="nombre" required inputmode="text" minlength="6" maxlength="80"
+          placeholder="Ej. Celi Glescanni" title="Escribe tu nombre completo (mínimo 2 palabras)."/>
         <div class="hint">Usa al menos dos palabras. Se permiten acentos y espacios.</div>
         <div class="error-msg" id="err-nombre"></div>
       </div>
 
       <div class="form-group">
         <label for="correo">Correo electrónico</label>
-        <input
-          type="email" id="correo" name="correo" required
-          inputmode="email" maxlength="120" placeholder="tucorreo@dominio.com"
-          autocomplete="email"
-        />
+        <input type="email" id="correo" name="correo" required inputmode="email" maxlength="120"
+          placeholder="tucorreo@dominio.com" autocomplete="email"/>
         <div class="hint">Debe ser un correo válido (evita temporales).</div>
         <div class="error-msg" id="err-correo"></div>
       </div>
 
       <div class="form-group">
         <label for="telefono">Número de teléfono</label>
-        <input
-          type="tel" id="telefono" name="telefono" required
-          inputmode="numeric" pattern="[0-9]{10}" maxlength="10"
-          placeholder="Agrega 10 dígitos"
-          title="Solo números, de 10 dígitos."
-        />
+        <input type="tel" id="telefono" name="telefono" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10"
+          placeholder="Agrega 10 dígitos" title="Solo números, de 10 dígitos."/>
         <div class="hint">Solo 10 dígitos.</div>
         <div class="error-msg" id="err-telefono"></div>
       </div>
@@ -172,18 +151,10 @@
 
       if (!prizeData){
         const folio = 'MUCH-' + Math.random().toString(36).substring(2,8).toUpperCase();
-        prizeData = {
-          title: 'MUCH · Premio',
-          label: 'Entrada al Planetario MUCH',
-          lugar: 'Planetario MUCH',
-          folio: folio,
-          date: new Date().toISOString(),
-          emoji: '🎁'
-        };
+        prizeData = { title:'MUCH · Premio', label:'Entrada al Planetario MUCH', lugar:'Planetario MUCH', folio, date:new Date().toISOString(), emoji:'🎁' };
         try { localStorage.setItem('much_quiz_prize', JSON.stringify(prizeData)); } catch(_){}
       }
 
-      /* registra en Supabase si está el helper disponible */
       try {
         if (window.createBoletoMUCH) {
           const folioDB = await window.createBoletoMUCH({
@@ -211,17 +182,12 @@
       });
 
       try { localStorage.removeItem('much_quiz_prize'); } catch(_){}
-
       window.location.href = 'boleto.html?' + params.toString();
     });
 
     ['nombre','correo','telefono'].forEach(id=>{
       $(id).addEventListener('input', () => {
-        const map = {
-          nombre:  [validateNombre, $('err-nombre')],
-          correo:  [validateEmail,  $('err-correo')],
-          telefono:[validatePhone,  $('err-telefono')]
-        };
+        const map = { nombre:[validateNombre, $('err-nombre')], correo:[validateEmail, $('err-correo')], telefono:[validatePhone, $('err-telefono')] };
         const [fn, errEl] = map[id];
         const msg = fn($(id).value);
         if (msg) setError($(id), errEl, msg); else clearError($(id), errEl);
@@ -229,7 +195,7 @@
     });
   </script>
 
-  <!-- Supabase helper (agregado, no interfiere con tu UI) -->
+  <!-- Supabase: crea/actualiza participante y registra boleto -->
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -239,54 +205,57 @@
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     window.sb = sb;
 
-    async function resolvePremioId(prizeData){
-      if (prizeData?.premio_id) return prizeData.premio_id;
-      const name = prizeData?.premio_nombre || prizeData?.label || prizeData?.premio || "";
-      if (!name) return null;
-      const { data, error } = await sb
-        .from("premios")
-        .select("id,nombre")
-        .ilike("nombre", name)
-        .limit(1)
-        .maybeSingle();
-      if (error) { console.warn("resolvePremioId error:", error.message); return null; }
+    // Busca premio_id por nombre (fallback) 
+    async function findPremioIdByNombre(nombrePremio){
+      if (!nombrePremio) return null;
+      const { data, error } = await sb.from('premios').select('id,nombre').ilike('nombre', nombrePremio).maybeSingle();
+      if (error) { console.warn('findPremioId error:', error.message); return null; }
       return data?.id || null;
     }
 
     window.createBoletoMUCH = async ({ nombre, correo, telefono, prizeData }) => {
+      // upsert participante por correo
       let participante_id = null;
-      const { data: pExist, error: e1 } = await sb.from("participantes")
-        .select("id").eq("correo", correo).maybeSingle();
+      const { data: pExist, error: e1 } = await sb.from("participantes").select("id").eq("correo", correo).maybeSingle();
       if (e1) throw e1;
-
-      if (pExist) {
+      if (pExist){
         participante_id = pExist.id;
         await sb.from("participantes").update({ nombre, telefono }).eq("id", participante_id);
-      } else {
+      }else{
         const { data: pNew, error: e2 } = await sb.from("participantes")
           .insert([{ nombre, correo, telefono }]).select().maybeSingle();
         if (e2 || !pNew) throw (e2 || new Error("No se pudo crear participante"));
         participante_id = pNew.id;
       }
 
+      // folio
       let folio = prizeData?.folio;
-      if (!folio) {
+      if (!folio){
         const d = new Date(), y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0");
         folio = `MUCH-${y}${m}${dd}-` + Math.random().toString(36).slice(2,7).toUpperCase();
-        try {
-          const merged = { ...(prizeData||{}), folio };
-          localStorage.setItem("much_quiz_prize", JSON.stringify(merged));
-        } catch(_) {}
+        try { localStorage.setItem("much_quiz_prize", JSON.stringify({ ...(prizeData||{}), folio })); } catch(_){}
       }
 
-      const premioId = await resolvePremioId(prizeData); // puede ser null
+      // evitar duplicado por folio
+      const { data: bExist, error: eDup } = await sb.from('boletos').select('id').eq('folio', folio).maybeSingle();
+      if (!eDup && bExist) return folio;
 
-      const hoyISO = new Date().toISOString().slice(0,10);
+      // premio_id: usa el que venga o busca por nombre
+      let premio_id = prizeData?.premio_id || null;
+      if (!premio_id) premio_id = await findPremioIdByNombre(prizeData?.label);
+
+      const hoy = new Date();
+      const hoyISO = hoy.toISOString().slice(0,10);
+      const hasta = new Date(hoy); hasta.setDate(hasta.getDate()+7);
+      const hastaISO = hasta.toISOString().slice(0,10);
+
+      // inserta boleto (aunque premio_id sea null)
       const { error: eB } = await sb.from("boletos").insert([{
         folio,
         participante_id,
-        premio_id: premioId ?? null,     // Fallback a null
+        premio_id,               // puede ser null
         valido_desde: hoyISO,
+        valido_hasta: hastaISO,
         created_at: new Date().toISOString()
       }]);
       if (eB) throw eB;
