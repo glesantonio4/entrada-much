@@ -24,21 +24,15 @@
     /* ——— Logo responsive ——— */
     .logo-wrap{ display:flex; justify-content:center; margin-bottom:10px; }
     .brand-logo{
-      /* ancho flexible: chico en móvil, más grande en desktop */
       width: clamp(120px, 42vw, 220px);
       max-width: 70%;
-      height: auto;                 /* mantiene proporción */
+      height: auto;
       display:block;
       image-rendering:-webkit-optimize-contrast;
       -ms-interpolation-mode: bicubic;
       filter: drop-shadow(0 2px 8px rgba(0,0,0,.35));
     }
-    /* Opcional: pon la clase 'badge' si tu logo pierde contraste en fondo oscuro */
-    .brand-logo.badge{
-      background:#fff;
-      border-radius:12px;
-      padding:6px 10px;
-    }
+    .brand-logo.badge{ background:#fff; border-radius:12px; padding:6px 10px; }
 
     h2{ text-align:center; margin:8px 0 14px; color:var(--fucsia); line-height:1.2; }
     p.lead{ text-align:center; margin:0 0 18px; color:#cbd5e1; }
@@ -62,7 +56,6 @@
     .submit-btn:active{ transform:scale(.995); }
     .submit-btn[disabled]{ opacity:.6; cursor:not-allowed; }
 
-    /* Ajustes muy pequeños (teléfonos angostos) */
     @media (max-width: 360px){
       .registro-container{ padding:18px 16px 22px; }
       h2{ font-size:1.15rem; }
@@ -72,9 +65,7 @@
 </head>
 <body>
   <div class="registro-container">
-    <!-- Logo -->
     <div class="logo-wrap">
-      <!-- Si necesitas más contraste, agrega la clase 'badge' abajo -->
       <img src="./logo-much.png" alt="MUCH · Museo de Ciencia y Tecnología" class="brand-logo">
     </div>
 
@@ -82,7 +73,6 @@
     <p class="lead">Gracias por Visitar el MUCH</p>
 
     <form id="registroForm" autocomplete="off" novalidate>
-      <!-- Nombre -->
       <div class="form-group">
         <label for="nombre">Nombre completo</label>
         <input
@@ -95,7 +85,6 @@
         <div class="error-msg" id="err-nombre"></div>
       </div>
 
-      <!-- Correo -->
       <div class="form-group">
         <label for="correo">Correo electrónico</label>
         <input
@@ -107,7 +96,6 @@
         <div class="error-msg" id="err-correo"></div>
       </div>
 
-      <!-- Teléfono -->
       <div class="form-group">
         <label for="telefono">Número de teléfono</label>
         <input
@@ -125,8 +113,7 @@
   </div>
 
   <script>
-    // ---------- Validadores ----------
-    const reNombre = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ \t]+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'.-]+){1,}$/; // ≥2 palabras
+    const reNombre = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ \t]+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'.-]+){1,}$/;
     const reEmail  = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
     const rePhone  = /^\d{10}$/;
     const disposableDomains = ["10minutemail.com","guerrillamail.com","tempmail.com","yopmail.com","mailinator.com","trashmail.com","sharklasers.com"];
@@ -154,11 +141,9 @@
       return null;
     }
 
-    // ---------- Submit ----------
     let submitting = false;
 
-    // ⬇️ SOLO cambio a async (necesario para await)
-    $('registroForm').addEventListener('submit', async function(e){
+    document.getElementById('registroForm').addEventListener('submit', async function(e){
       e.preventDefault();
       if (submitting) return;
       submitting = true;
@@ -168,7 +153,6 @@
       const correo   = $('correo').value;
       const telefono = $('telefono').value;
 
-      // Validar campos
       let ok = true;
       const nErr = validateNombre(nombre);  if (nErr){ ok=false; setError($('nombre'), $('err-nombre'), nErr); } else { clearError($('nombre'), $('err-nombre')); }
       const cErr = validateEmail(correo);   if (cErr){ ok=false; setError($('correo'), $('err-correo'), cErr); } else { clearError($('correo'), $('err-correo')); }
@@ -180,14 +164,12 @@
         return;
       }
 
-      // Intentar leer el premio que dejó el juego (much_quiz_prize)
       let prizeData = null;
       try{
         const raw = localStorage.getItem('much_quiz_prize');
         if (raw) prizeData = JSON.parse(raw);
       }catch(_){}
 
-      // Plan B
       if (!prizeData){
         const folio = 'MUCH-' + Math.random().toString(36).substring(2,8).toUpperCase();
         prizeData = {
@@ -201,7 +183,7 @@
         try { localStorage.setItem('much_quiz_prize', JSON.stringify(prizeData)); } catch(_){}
       }
 
-      /* ⬇⬇⬇ AGREGADO: registrar en Supabase (participante + boleto) sin romper tu flujo */
+      /* registra en Supabase si está el helper disponible */
       try {
         if (window.createBoletoMUCH) {
           const folioDB = await window.createBoletoMUCH({
@@ -218,9 +200,7 @@
       } catch(err) {
         console.warn('No se pudo registrar en Supabase:', err?.message || err);
       }
-      /* ⬆⬆⬆ FIN AGREGADO */
 
-      // Build params
       const params = new URLSearchParams({
         nombre:   nombre.trim().replace(/\s+/g,' '),
         correo:   correo.trim().toLowerCase(),
@@ -230,13 +210,11 @@
         lugar:    prizeData.lugar || ''
       });
 
-      // Evitar doble canje
       try { localStorage.removeItem('much_quiz_prize'); } catch(_){}
 
       window.location.href = 'boleto.html?' + params.toString();
     });
 
-    // Limpieza de errores
     ['nombre','correo','telefono'].forEach(id=>{
       $(id).addEventListener('input', () => {
         const map = {
@@ -251,20 +229,31 @@
     });
   </script>
 
-  <!-- ⬇⬇⬇ AGREGADO: módulo Supabase (no interfiere con tu script) -->
+  <!-- Supabase helper (agregado, no interfiere con tu UI) -->
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    // CONFIGURA TUS CLAVES
- const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     window.sb = sb;
 
-    // Crea/actualiza participante por correo y registra boleto (si hay premio_id)
+    async function resolvePremioId(prizeData){
+      if (prizeData?.premio_id) return prizeData.premio_id;
+      const name = prizeData?.premio_nombre || prizeData?.label || prizeData?.premio || "";
+      if (!name) return null;
+      const { data, error } = await sb
+        .from("premios")
+        .select("id,nombre")
+        .ilike("nombre", name)
+        .limit(1)
+        .maybeSingle();
+      if (error) { console.warn("resolvePremioId error:", error.message); return null; }
+      return data?.id || null;
+    }
+
     window.createBoletoMUCH = async ({ nombre, correo, telefono, prizeData }) => {
-      // 1) participante (upsert por correo)
       let participante_id = null;
       const { data: pExist, error: e1 } = await sb.from("participantes")
         .select("id").eq("correo", correo).maybeSingle();
@@ -280,7 +269,6 @@
         participante_id = pNew.id;
       }
 
-      // 2) folio si no viene
       let folio = prizeData?.folio;
       if (!folio) {
         const d = new Date(), y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0");
@@ -291,22 +279,20 @@
         } catch(_) {}
       }
 
-      // 3) boleto (solo si tienes premio_id en localStorage)
-      if (prizeData?.premio_id) {
-        const hoyISO = new Date().toISOString().slice(0,10);
-        const { error: eB } = await sb.from("boletos").insert([{
-          folio,
-          participante_id,
-          premio_id: prizeData.premio_id,
-          valido_desde: hoyISO,
-          created_at: new Date().toISOString()
-        }]);
-        if (eB) throw eB;
-      }
+      const premioId = await resolvePremioId(prizeData); // puede ser null
+
+      const hoyISO = new Date().toISOString().slice(0,10);
+      const { error: eB } = await sb.from("boletos").insert([{
+        folio,
+        participante_id,
+        premio_id: premioId ?? null,     // Fallback a null
+        valido_desde: hoyISO,
+        created_at: new Date().toISOString()
+      }]);
+      if (eB) throw eB;
 
       return folio;
     };
   </script>
-  <!-- ⬆⬆⬆ FIN AGREGADO -->
 </body>
 </html>
