@@ -41,12 +41,10 @@
       padding:clamp(18px, 3vw, 26px); position:relative; background:#fff;
     }
 
-    /* CABECERA: grid 3 columnas (logo - centro - logo) */
     .ticket-head{
       display:grid;
       grid-template-columns: auto 1fr auto;
-      grid-template-areas:
-        "logoL center logoR";
+      grid-template-areas: "logoL center logoR";
       align-items:center; gap:12px; margin-bottom:10px;
     }
     .ticket-logo{
@@ -83,7 +81,6 @@
     .btn-link{ background:#fff; color:#0b1220; border:1px solid #e5e7eb; }
     .muted{ color:var(--muted); font-weight:600; margin-top:10px; }
 
-    /* MÓVIL */
     @media (max-width: 600px){
       body{
         padding:
@@ -95,23 +92,16 @@
       .ticket-shell{ width:100%; }
       .ticket-card{ padding:14px; border-radius:16px; box-shadow:0 14px 28px rgba(2,6,23,.16); }
       .ticket-paper{ padding:14px; border-radius:14px; }
-
-      /* cabecera: logos más contenidos y folio pasa debajo del título */
       .ticket-logo{ width:96px; max-width:30vw; }
-      .ticket-head{
-        grid-template-columns: auto 1fr auto;
-        gap:10px;
-      }
+      .ticket-head{ grid-template-columns: auto 1fr auto; gap:10px; }
       .ticket-title{ font-size:clamp(17px, 5vw, 20px); }
       .folio{ display:block; margin-top:6px; }
-
       .row{ display:grid; grid-template-columns:1fr; gap:4px; padding:10px 0; }
       .label{ min-width:0; font-size:.9rem; }
       .value{ font-size:1rem; }
       .actions .btn{ flex:1 1 100%; justify-content:center; padding:12px; font-size:1rem; }
     }
 
-    /* IMPRESIÓN */
     @media print{
       html,body{ background:#fff !important; animation:none !important; }
       body{ padding:0 !important; }
@@ -202,61 +192,49 @@
   })();
   </script>
 
-  <!-- ✅ AGREGADO: sincroniza con Supabase solo si hace falta crear el boleto -->
+  <!-- Sincroniza con Supabase (intenta premio_id; si no, inserta con null) -->
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-    // 🔧 TUS CLAVES
-const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
-    
+    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Lee datos ya renderizados / querystring / localStorage sin tocar tu UI
+    async function resolvePremioId(prizeData){
+      if (prizeData?.premio_id) return prizeData.premio_id;
+      const name = prizeData?.premio_nombre || prizeData?.label || prizeData?.premio || "";
+      if (!name) return null;
+      const { data, error } = await sb
+        .from("premios")
+        .select("id,nombre")
+        .ilike("nombre", name)
+        .limit(1)
+        .maybeSingle();
+      if (error) { console.warn("resolvePremioId error:", error.message); return null; }
+      return data?.id || null;
+    }
+
     const qs = new URLSearchParams(location.search);
-    const folio = qs.get('folio') || (()=>{
-      try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').folio)||'' } catch(_){ return '' }
-    })();
+    const folio = qs.get('folio') || (()=>{ try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').folio)||'' } catch(_){ return '' } })();
+    const correo = qs.get('correo')|| (()=>{ try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').correo)||'' } catch(_){ return '' } })();
+    const nombre = qs.get('nombre')|| (()=>{ try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').nombre)||'' } catch(_){ return '' } })();
+    const telefono = qs.get('telefono')||(()=>{ try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').telefono)||'' } catch(_){ return '' } })();
+    const prizeData = (()=>{ try { return JSON.parse(localStorage.getItem('much_quiz_prize')||'{}'); } catch(_){ return {}; } })();
 
-    const correo = qs.get('correo') || (()=>{
-      try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').correo)||'' } catch(_){ return '' }
-    })();
-
-    const nombre = qs.get('nombre') || (()=>{
-      try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').nombre)||'' } catch(_){ return '' }
-    })();
-
-    const telefono = qs.get('telefono') || (()=>{
-      try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').telefono)||'' } catch(_){ return '' }
-    })();
-
-    // premio_id desde localStorage (si el juego lo guardó)
-    const prizeData = (()=>{
-      try { return JSON.parse(localStorage.getItem('much_quiz_prize')||'{}'); } catch(_){ return {}; }
-    })();
-    const premio_id = prizeData?.premio_id || null;
-
-    // Solo intentamos registrar si tenemos al menos folio y correo
     (async ()=>{
       try{
-        if (!folio || !correo) {
-          console.warn('Sync Supabase omitido: falta folio o correo.');
-          return;
-        }
+        if (!folio || !correo) { console.warn('Sync Supabase omitido: falta folio o correo.'); return; }
 
-        // 1) ¿Ya existe el boleto?
         const { data: bExist, error: eB1 } = await sb.from('boletos').select('id').eq('folio', folio).maybeSingle();
         if (eB1) { console.warn('Error consultando boleto:', eB1.message); return; }
-        if (bExist) { /* ya está en DB */ return; }
+        if (bExist) return;
 
-        // 2) Buscar/crear participante por correo
         let participante_id = null;
         const { data: pExist, error: eP1 } = await sb.from('participantes').select('id').eq('correo', correo).maybeSingle();
         if (eP1) { console.warn('Error consultando participante:', eP1.message); return; }
 
         if (pExist) {
           participante_id = pExist.id;
-          // actualizar datos básicos (no crítico si falla)
           await sb.from('participantes').update({ nombre, telefono }).eq('id', participante_id);
         } else {
           const { data: pNew, error: eP2 } = await sb.from('participantes')
@@ -265,17 +243,13 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
           participante_id = pNew.id;
         }
 
-        // 3) Insertar boleto (si hay premio_id). Si no hay, no rompemos nada.
-        if (!premio_id) {
-          console.warn('No se insertó en boletos porque falta premio_id (flujo visual sigue OK).');
-          return;
-        }
+        const premioId = await resolvePremioId(prizeData); // puede ser null
 
         const hoyISO = new Date().toISOString().slice(0,10);
         const { error: eB2 } = await sb.from('boletos').insert([{
           folio,
           participante_id,
-          premio_id,
+          premio_id: premioId ?? null,  // Fallback a null
           valido_desde: hoyISO,
           created_at: new Date().toISOString()
         }]);
@@ -286,6 +260,5 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
       }
     })();
   </script>
-  <!-- ❗Fin del agregado; no se modificó tu UI ni tu lógica de impresión -->
 </body>
 </html>
