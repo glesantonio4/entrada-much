@@ -157,7 +157,8 @@
     // ---------- Submit ----------
     let submitting = false;
 
-    $('registroForm').addEventListener('submit', function(e){
+    // ⬇️ SOLO cambio a async (necesario para await)
+    $('registroForm').addEventListener('submit', async function(e){
       e.preventDefault();
       if (submitting) return;
       submitting = true;
@@ -200,6 +201,25 @@
         try { localStorage.setItem('much_quiz_prize', JSON.stringify(prizeData)); } catch(_){}
       }
 
+      /* ⬇⬇⬇ AGREGADO: registrar en Supabase (participante + boleto) sin romper tu flujo */
+      try {
+        if (window.createBoletoMUCH) {
+          const folioDB = await window.createBoletoMUCH({
+            nombre:   nombre.trim().replace(/\s+/g,' '),
+            correo:   correo.trim().toLowerCase(),
+            telefono: telefono.trim(),
+            prizeData
+          });
+          if (folioDB && (!prizeData.folio || prizeData.folio !== folioDB)) {
+            prizeData.folio = folioDB;
+            try { localStorage.setItem('much_quiz_prize', JSON.stringify(prizeData)); } catch(_){}
+          }
+        }
+      } catch(err) {
+        console.warn('No se pudo registrar en Supabase:', err?.message || err);
+      }
+      /* ⬆⬆⬆ FIN AGREGADO */
+
       // Build params
       const params = new URLSearchParams({
         nombre:   nombre.trim().replace(/\s+/g,' '),
@@ -230,5 +250,63 @@
       });
     });
   </script>
+
+  <!-- ⬇⬇⬇ AGREGADO: módulo Supabase (no interfiere con tu script) -->
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    // CONFIGURA TUS CLAVES
+    const SUPABASE_URL = "https://TU-PROJECT.supabase.co";
+    const SUPABASE_ANON_KEY = "TU-ANON-KEY";
+
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    window.sb = sb;
+
+    // Crea/actualiza participante por correo y registra boleto (si hay premio_id)
+    window.createBoletoMUCH = async ({ nombre, correo, telefono, prizeData }) => {
+      // 1) participante (upsert por correo)
+      let participante_id = null;
+      const { data: pExist, error: e1 } = await sb.from("participantes")
+        .select("id").eq("correo", correo).maybeSingle();
+      if (e1) throw e1;
+
+      if (pExist) {
+        participante_id = pExist.id;
+        await sb.from("participantes").update({ nombre, telefono }).eq("id", participante_id);
+      } else {
+        const { data: pNew, error: e2 } = await sb.from("participantes")
+          .insert([{ nombre, correo, telefono }]).select().maybeSingle();
+        if (e2 || !pNew) throw (e2 || new Error("No se pudo crear participante"));
+        participante_id = pNew.id;
+      }
+
+      // 2) folio si no viene
+      let folio = prizeData?.folio;
+      if (!folio) {
+        const d = new Date(), y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), dd=String(d.getDate()).padStart(2,"0");
+        folio = `MUCH-${y}${m}${dd}-` + Math.random().toString(36).slice(2,7).toUpperCase();
+        try {
+          const merged = { ...(prizeData||{}), folio };
+          localStorage.setItem("much_quiz_prize", JSON.stringify(merged));
+        } catch(_) {}
+      }
+
+      // 3) boleto (solo si tienes premio_id en localStorage)
+      if (prizeData?.premio_id) {
+        const hoyISO = new Date().toISOString().slice(0,10);
+        const { error: eB } = await sb.from("boletos").insert([{
+          folio,
+          participante_id,
+          premio_id: prizeData.premio_id,
+          valido_desde: hoyISO,
+          created_at: new Date().toISOString()
+        }]);
+        if (eB) throw eB;
+      }
+
+      return folio;
+    };
+  </script>
+  <!-- ⬆⬆⬆ FIN AGREGADO -->
 </body>
 </html>
