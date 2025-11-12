@@ -6,110 +6,46 @@
   <title>Boleto Ganador · MUCH</title>
 
   <style>
-    :root{
-      --ink:#0b1220; --muted:#64748b; --turquesa:#06b6d4; --fucsia:#d946ef;
-      --paper:#ffffff; --paper-line:#e5e7eb; --chip-bg:#ecfeff; --chip-ink:#075985;
-    }
-    *{ box-sizing:border-box; }
-    html,body{ height:100%; overflow-x:hidden; }
-    img{ max-width:100%; height:auto; }
+    :root{ --ink:#0b1220; --muted:#64748b; --turquesa:#06b6d4; --fucsia:#d946ef; --paper:#ffffff; --paper-line:#e5e7eb; --chip-bg:#ecfeff; --chip-ink:#075985; }
+    *{ box-sizing:border-box; } html,body{ height:100%; overflow-x:hidden; } img{ max-width:100%; height:auto; }
     body{
-      margin:0;
-      font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-      color:var(--ink);
-      background:
-        radial-gradient(1200px 800px at 20% 20%, rgba(255,255,255,.5), transparent 60%),
-        linear-gradient(135deg, #0ea5b9, #ec4899, #38bdf8, #f472b6);
-      background-size:200% 200%;
-      animation:bgmove 24s ease-in-out infinite;
-      display:flex; align-items:center; justify-content:center;
-      padding:
-        max(24px, env(safe-area-inset-top))
-        max(24px, env(safe-area-inset-right))
-        max(24px, env(safe-area-inset-bottom))
-        max(24px, env(safe-area-inset-left));
+      margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; color:var(--ink);
+      background: radial-gradient(1200px 800px at 20% 20%, rgba(255,255,255,.5), transparent 60%), linear-gradient(135deg, #0ea5b9, #ec4899, #38bdf8, #f472b6);
+      background-size:200% 200%; animation:bgmove 24s ease-in-out infinite; display:flex; align-items:center; justify-content:center;
+      padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
     }
     @keyframes bgmove{ 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-
     .ticket-shell{ width:min(920px, 96%); margin-inline:auto; }
-    .ticket-card{
-      background:var(--paper); border-radius:20px; box-shadow:0 24px 48px rgba(2,6,23,.18);
-      border:1px solid rgba(255,255,255,.4); padding:clamp(18px, 3vw, 28px);
-    }
-    .ticket-paper{
-      border:2px dashed var(--paper-line); border-radius:16px;
-      padding:clamp(18px, 3vw, 26px); position:relative; background:#fff;
-    }
-
-    .ticket-head{
-      display:grid;
-      grid-template-columns: auto 1fr auto;
-      grid-template-areas: "logoL center logoR";
-      align-items:center; gap:12px; margin-bottom:10px;
-    }
-    .ticket-logo{
-      grid-area:auto;
-      width:140px; max-width:40vw; border-radius:15px; padding:6px; object-fit:contain;
-      background:#fff; border:1px solid #eef2ff; box-shadow:0 6px 16px rgba(6,182,212,.22);
-    }
-    .logo-left{ grid-area:logoL; }
-    .logo-right{ grid-area:logoR; }
-    .center{ grid-area:center; min-width:0; }
-
-    .ticket-title{
-      font-weight:900; letter-spacing:.3px; color:var(--fucsia);
-      font-size:clamp(18px, 2.4vw, 22px); margin:0;
-      line-height:1.15; overflow-wrap:anywhere;
-    }
-    .folio{
-      display:inline-flex; align-items:center; gap:8px; background:var(--chip-bg); color:var(--chip-ink);
-      font-weight:800; padding:6px 10px; border-radius:999px; border:1px solid #bae6fd;
-      margin-top:6px; font-size:.95rem; max-width:100%; white-space:normal; line-height:1.1;
-    }
-
+    .ticket-card{ background:var(--paper); border-radius:20px; box-shadow:0 24px 48px rgba(2,6,23,.18); border:1px solid rgba(255,255,255,.4); padding:clamp(18px, 3vw, 28px); }
+    .ticket-paper{ border:2px dashed var(--paper-line); border-radius:16px; padding:clamp(18px, 3vw, 26px); position:relative; background:#fff; }
+    .ticket-head{ display:grid; grid-template-columns: auto 1fr auto; grid-template-areas:"logoL center logoR"; align-items:center; gap:12px; margin-bottom:10px; }
+    .ticket-logo{ grid-area:auto; width:140px; max-width:40vw; border-radius:15px; padding:6px; object-fit:contain; background:#fff; border:1px solid #eef2ff; box-shadow:0 6px 16px rgba(6,182,212,.22); }
+    .logo-left{ grid-area:logoL; } .logo-right{ grid-area:logoR; } .center{ grid-area:center; min-width:0; }
+    .ticket-title{ font-weight:900; letter-spacing:.3px; color:var(--fucsia); font-size:clamp(18px, 2.4vw, 22px); margin:0; line-height:1.15; overflow-wrap:anywhere; }
+    .folio{ display:inline-flex; align-items:center; gap:8px; background:var(--chip-bg); color:var(--chip-ink); font-weight:800; padding:6px 10px; border-radius:999px; border:1px solid #bae6fd; margin-top:6px; font-size:.95rem; max-width:100%; white-space:normal; line-height:1.1; }
     .rows{ margin-top:10px; border-top:1px solid var(--paper-line); padding-top:10px; }
-    .row{ display:flex; gap:12px; align-items:baseline; padding:8px 0; border-bottom:1px dashed #eef2ff; }
-    .row:last-child{ border-bottom:0; }
-    .label{ min-width:128px; color:var(--muted); font-weight:700; }
-    .value{ font-weight:700; overflow-wrap:anywhere; word-break:break-word; line-height:1.25; }
-
+    .row{ display:flex; gap:12px; align-items:baseline; padding:8px 0; border-bottom:1px dashed #eef2ff; } .row:last-child{ border-bottom:0; }
+    .label{ min-width:128px; color:var(--muted); font-weight:700; } .value{ font-weight:700; overflow-wrap:anywhere; word-break:break-word; line-height:1.25; }
     .note{ margin-top:12px; background:#f8fafc; border:1px dashed #e2e8f0; color:#0f172a; padding:12px 14px; border-radius:12px; font-size:.95rem; }
     .actions{ display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-start; margin-top:16px; }
     .btn{ appearance:none; border:0; cursor:pointer; border-radius:12px; padding:10px 14px; font-weight:800; font-size:.95rem; display:inline-flex; align-items:center; gap:8px; text-decoration:none; }
-    .btn-print{ background:var(--turquesa); color:#fff; }
-    .btn-print:hover{ filter:brightness(1.05); }
-    .btn-link{ background:#fff; color:#0b1220; border:1px solid #e5e7eb; }
-    .muted{ color:var(--muted); font-weight:600; margin-top:10px; }
+    .btn-print{ background:var(--turquesa); color:#fff; } .btn-print:hover{ filter:brightness(1.05); }
+    .btn-link{ background:#fff; color:#0b1220; border:1px solid #e5e7eb; } .muted{ color:var(--muted); font-weight:600; margin-top:10px; }
 
     @media (max-width: 600px){
-      body{
-        padding:
-          max(12px, env(safe-area-inset-top))
-          max(12px, env(safe-area-inset-right))
-          max(12px, env(safe-area-inset-bottom))
-          max(12px, env(safe-area-inset-left));
-      }
-      .ticket-shell{ width:100%; }
-      .ticket-card{ padding:14px; border-radius:16px; box-shadow:0 14px 28px rgba(2,6,23,.16); }
-      .ticket-paper{ padding:14px; border-radius:14px; }
-      .ticket-logo{ width:96px; max-width:30vw; }
+      body{ padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+      .ticket-shell{ width:100%; } .ticket-card{ padding:14px; border-radius:16px; box-shadow:0 14px 28px rgba(2,6,23,.16); }
+      .ticket-paper{ padding:14px; border-radius:14px; } .ticket-logo{ width:96px; max-width:30vw; }
       .ticket-head{ grid-template-columns: auto 1fr auto; gap:10px; }
-      .ticket-title{ font-size:clamp(17px, 5vw, 20px); }
-      .folio{ display:block; margin-top:6px; }
-      .row{ display:grid; grid-template-columns:1fr; gap:4px; padding:10px 0; }
-      .label{ min-width:0; font-size:.9rem; }
-      .value{ font-size:1rem; }
+      .ticket-title{ font-size:clamp(17px, 5vw, 20px); } .folio{ display:block; margin-top:6px; }
+      .row{ display:grid; grid-template-columns:1fr; gap:4px; padding:10px 0; } .label{ min-width:0; font-size:.9rem; } .value{ font-size:1rem; }
       .actions .btn{ flex:1 1 100%; justify-content:center; padding:12px; font-size:1rem; }
     }
 
     @media print{
       html,body{ background:#fff !important; animation:none !important; }
-      body{ padding:0 !important; }
-      .ticket-shell{ width:100%; padding:0; margin:0; }
-      .ticket-card{ box-shadow:none; border:0; padding:0; }
-      .ticket-paper{ border-color:#cbd5e1; }
-      .actions, .muted{ display:none !important; }
-      @page{ size:A4; margin:14mm; }
+      body{ padding:0 !important; } .ticket-shell{ width:100%; padding:0; margin:0; } .ticket-card{ box-shadow:none; border:0; padding:0; }
+      .ticket-paper{ border-color:#cbd5e1; } .actions, .muted{ display:none !important; } @page{ size:A4; margin:14mm; }
     }
   </style>
 </head>
@@ -135,9 +71,7 @@
           <div class="row"><div class="label">Teléfono:</div><div id="tTel" class="value">—</div></div>
         </div>
 
-        <div class="note">
-          Presenta este boleto en taquilla. Sujeto a disponibilidad y horarios del museo.
-        </div>
+        <div class="note">Presenta este boleto en taquilla. Sujeto a disponibilidad y horarios del museo.</div>
 
         <div class="actions">
           <button class="btn btn-print" onclick="window.print()">🖨️ Imprimir Boleto</button>
@@ -152,12 +86,8 @@
   <script>
   (function(){
     const qs = new URLSearchParams(location.search);
-
     let prizeData = null;
-    try{
-      const raw = localStorage.getItem('much_quiz_prize');
-      if(raw) prizeData = JSON.parse(raw);
-    }catch(_){}
+    try{ const raw = localStorage.getItem('much_quiz_prize'); if(raw) prizeData = JSON.parse(raw); }catch(_){}
 
     const nombreQS  = qs.get('nombre')   || '';
     const correoQS  = qs.get('correo')   || '';
@@ -192,7 +122,7 @@
   })();
   </script>
 
-  <!-- Sincroniza con Supabase (intenta premio_id; si no, inserta con null) -->
+  <!-- Sincronización de respaldo a Supabase -->
   <script type="module">
     import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
@@ -200,64 +130,61 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    async function resolvePremioId(prizeData){
-      if (prizeData?.premio_id) return prizeData.premio_id;
-      const name = prizeData?.premio_nombre || prizeData?.label || prizeData?.premio || "";
-      if (!name) return null;
-      const { data, error } = await sb
-        .from("premios")
-        .select("id,nombre")
-        .ilike("nombre", name)
-        .limit(1)
-        .maybeSingle();
-      if (error) { console.warn("resolvePremioId error:", error.message); return null; }
+    function getQS(k){ return new URLSearchParams(location.search).get(k) || ''; }
+    function getPrize(){ try{ return JSON.parse(localStorage.getItem('much_quiz_prize')||'{}'); }catch(_){ return {}; } }
+
+    async function findPremioIdByNombre(nombrePremio){
+      if (!nombrePremio) return null;
+      const { data, error } = await sb.from('premios').select('id,nombre').ilike('nombre', nombrePremio).maybeSingle();
+      if (error){ console.warn('findPremioId error:', error.message); return null; }
       return data?.id || null;
     }
 
-    const qs = new URLSearchParams(location.search);
-    const folio = qs.get('folio') || (()=>{ try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').folio)||'' } catch(_){ return '' } })();
-    const correo = qs.get('correo')|| (()=>{ try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').correo)||'' } catch(_){ return '' } })();
-    const nombre = qs.get('nombre')|| (()=>{ try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').nombre)||'' } catch(_){ return '' } })();
-    const telefono = qs.get('telefono')||(()=>{ try { return (JSON.parse(localStorage.getItem('much_quiz_prize')||'{}').telefono)||'' } catch(_){ return '' } })();
-    const prizeData = (()=>{ try { return JSON.parse(localStorage.getItem('much_quiz_prize')||'{}'); } catch(_){ return {}; } })();
-
     (async ()=>{
-      try{
-        if (!folio || !correo) { console.warn('Sync Supabase omitido: falta folio o correo.'); return; }
+      const prize = getPrize();
+      const folio = getQS('folio') || prize.folio || '';
+      const correo = getQS('correo') || '';
+      const nombre = getQS('nombre') || '';
+      const telefono = getQS('telefono') || '';
+      const premioNombre = getQS('premio') || prize.label || '';
 
-        const { data: bExist, error: eB1 } = await sb.from('boletos').select('id').eq('folio', folio).maybeSingle();
-        if (eB1) { console.warn('Error consultando boleto:', eB1.message); return; }
-        if (bExist) return;
+      if (!folio || !correo) return;
 
-        let participante_id = null;
-        const { data: pExist, error: eP1 } = await sb.from('participantes').select('id').eq('correo', correo).maybeSingle();
-        if (eP1) { console.warn('Error consultando participante:', eP1.message); return; }
+      // ¿ya existe?
+      const { data: bExist, error: eB1 } = await sb.from('boletos').select('id').eq('folio', folio).maybeSingle();
+      if (!eB1 && bExist) return;
 
-        if (pExist) {
-          participante_id = pExist.id;
-          await sb.from('participantes').update({ nombre, telefono }).eq('id', participante_id);
-        } else {
-          const { data: pNew, error: eP2 } = await sb.from('participantes')
-            .insert([{ nombre, correo, telefono }]).select().maybeSingle();
-          if (eP2 || !pNew) { console.warn('No se pudo crear participante'); return; }
-          participante_id = pNew.id;
-        }
-
-        const premioId = await resolvePremioId(prizeData); // puede ser null
-
-        const hoyISO = new Date().toISOString().slice(0,10);
-        const { error: eB2 } = await sb.from('boletos').insert([{
-          folio,
-          participante_id,
-          premio_id: premioId ?? null,  // Fallback a null
-          valido_desde: hoyISO,
-          created_at: new Date().toISOString()
-        }]);
-
-        if (eB2) console.warn('Error insertando boleto:', eB2.message);
-      }catch(err){
-        console.warn('Sync Supabase falló:', err?.message || err);
+      // participante por correo
+      let participante_id = null;
+      const { data: pExist, error: eP1 } = await sb.from('participantes').select('id').eq('correo', correo).maybeSingle();
+      if (eP1) { console.warn('Consulta participante:', eP1.message); return; }
+      if (pExist){
+        participante_id = pExist.id;
+        await sb.from('participantes').update({ nombre, telefono }).eq('id', participante_id);
+      }else{
+        const { data: pNew, error: eP2 } = await sb.from('participantes').insert([{ nombre, correo, telefono }]).select().maybeSingle();
+        if (eP2 || !pNew) { console.warn('Crear participante:', eP2?.message); return; }
+        participante_id = pNew.id;
       }
+
+      // premio_id si existe o lo buscamos por nombre
+      let premio_id = prize.premio_id || null;
+      if (!premio_id) premio_id = await findPremioIdByNombre(premioNombre);
+
+      const hoy = new Date();
+      const hoyISO = hoy.toISOString().slice(0,10);
+      const hasta = new Date(hoy); hasta.setDate(hasta.getDate()+7);
+      const hastaISO = hasta.toISOString().slice(0,10);
+
+      const { error: eIns } = await sb.from('boletos').insert([{
+        folio,
+        participante_id,
+        premio_id,              // puede ser null si no se encontró
+        valido_desde: hoyISO,
+        valido_hasta: hastaISO,
+        created_at: new Date().toISOString()
+      }]);
+      if (eIns) console.warn('Insert boleto:', eIns.message);
     })();
   </script>
 </body>
