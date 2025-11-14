@@ -5,12 +5,150 @@
   <title>MUCH • Jugadas recientes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: system-ui, Arial, sans-serif; padding:24px }
-    h1 { margin-bottom: 8px }
-    #status { margin-bottom: 16px; white-space: pre-line; }
-    table { width:100%; border-collapse:collapse }
-    th,td { padding:10px; border-bottom:1px solid #eee; font-size:14px }
-    .pill { padding:2px 8px; border-radius:999px; background:#f3f4f6; display:inline-block }
+    /* 1. Reset básico y configuración global */
+    * {
+      box-sizing: border-box;
+    }
+    
+    html {
+      background-color: #f8f9fa; /* Fondo gris global */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* 2. El "Card" principal (el body) */
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #ffffff; /* Contenido en un "card" blanco */
+      color: #212529;
+      margin: 32px auto; /* Centrado y con margen vertical */
+      padding: 24px 32px; /* Relleno interno */
+      max-width: 1200px; /* Ancho máximo para legibilidad */
+      border-radius: 12px; /* Esquinas redondeadas */
+      box-shadow: 0 6px 20px rgba(0,0,0,0.07); /* Sombra sutil */
+      line-height: 1.6;
+    }
+
+    /* 3. Tipografía y Encabezado */
+    h1 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 1.75rem; /* 28px */
+      font-weight: 700;
+    }
+
+    /* 4. Mensaje de Estado (Carga/Error) */
+    #status {
+      margin-bottom: 24px; /* Más espacio antes de la tabla */
+      white-space: pre-line;
+      font-size: 0.95rem;
+      color: #495057; /* Un gris más oscuro */
+      background-color: #f3f4f6;
+      padding: 12px 16px;
+      border-radius: 6px;
+      border: 1px solid #e9ecef;
+    }
+    #status:empty { 
+      display: none; 
+    }
+
+    /* 5. Estilo de la Tabla */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      /* Enmarcamos la tabla sutilmente */
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      overflow: hidden; /* Clave para que el border-radius funcione en las esquinas */
+    }
+
+    /* 6. Encabezados de Tabla (thead) */
+    thead {
+      background-color: #f8f9fa; /* Fondo sutil para la cabecera */
+    }
+    th {
+      padding: 12px 16px;
+      border-bottom: 2px solid #dee2e6; /* Línea más gruesa para separar */
+      font-size: 0.75rem; /* 12px */
+      font-weight: 600;
+      color: #495057;
+      text-align: left;
+      text-transform: uppercase; /* Estilo profesional */
+      letter-spacing: 0.5px;
+    }
+
+    /* 7. Cuerpo de la Tabla (tbody) */
+    td {
+      padding: 14px 16px; /* Padding vertical más grande en celdas */
+      border-bottom: 1px solid #e9ecef; /* Línea de separación suave */
+      font-size: 0.9rem; /* 14.4px */
+      color: #343a40;
+      text-align: left;
+    }
+    
+    /* Quitamos el borde de la última fila */
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    /* Efecto hover sutil en las filas */
+    tbody tr:hover {
+      background-color: #f1f3f5;
+    }
+
+    /* 8. Estilo del .pill (ya estaba bien, solo refinamos) */
+    .pill {
+      padding: 4px 10px;
+      border-radius: 12px;
+      background-color: #e9ecef;
+      color: #495057;
+      display: inline-block;
+      font-size: 0.8rem; /* 12.8px */
+      font-weight: 500;
+      font-family: system-ui; /* Aseguramos que no sea monoespaciada */
+    }
+    
+    /* Estilo para IDs (participante) */
+    td:nth-child(3) {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      color: #005a9e;
+      font-size: 0.85rem;
+    }
+    
+    /* 9. Responsividad */
+    @media (max-width: 768px) {
+      /* En móvil, el body-card se pega a los bordes */
+      body {
+        margin: 0;
+        padding: 16px;
+        border-radius: 0;
+        box-shadow: none;
+        /* El body se vuelve transparente, el fondo es el 'html' */
+        background-color: #f8f9fa; 
+      }
+      
+      h1 { font-size: 1.6rem; }
+      #status { margin-bottom: 16px; }
+
+      /* Hacemos que la tabla sea el "card" en móvil */
+      table {
+        display: block; /* <-- La clave para el scroll */
+        overflow-x: auto; /* <-- Permite scroll horizontal */
+        white-space: nowrap; /* <-- Evita que el texto se parta */
+        background-color: #ffffff; /* Fondo blanco para la tabla */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); /* Sombra para la tabla */
+      }
+      
+      th, td {
+        /* Re-ajustamos white-space para que funcione bien */
+        white-space: nowrap; 
+      }
+      /* Permitimos que la fecha sí se parta si es necesario */
+      th:first-child, td:first-child {
+        white-space: normal;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -123,7 +261,7 @@
 
         // 4) Render
         status.style.display = 'none';
-        tabla.style.display = '';
+        tabla.style.display = ''; // El CSS se encargará del 'display' real
         tbody.innerHTML = quizzes.map(q => {
           const resp = respByQuiz[q.id] ?? [];
           const total = q.num_preguntas ?? (resp.length || 0);
