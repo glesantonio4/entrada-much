@@ -501,7 +501,7 @@
         try {
           const { data: resps, error: errR } = await supabase
             .from('respuestas')
-            .select('quiz_id, es_correcta')
+            .select('*')            // <-- ya no pedimos es_correcta explícito
             .in('quiz_id', ids);
 
           if (!errR && Array.isArray(resps)) {
@@ -515,11 +515,11 @@
           console.warn('Aviso: tabla respuestas no disponible o error:', e);
         }
 
-        // 3) Boletos (opcional; si falla, solo se verán en 0 las métricas relacionadas)
+        // 3) Boletos (usamos la vista vw_boletos, que sí expone quiz_id)
         let ticketByQuiz = {};
         try {
           const { data: bols, error: errB } = await supabase
-            .from('boletos')
+            .from('vw_boletos')                 // <-- vista
             .select('quiz_id, folio, premio_nombre')
             .in('quiz_id', ids);
 
@@ -529,7 +529,7 @@
             console.warn('Aviso: no se pudo leer boletos:', errB.message);
           }
         } catch (e) {
-          console.warn('Aviso: tabla boletos no disponible o error:', e);
+          console.warn('Aviso: vista vw_boletos no disponible o error:', e);
         }
 
         // 4) Render tabla
