@@ -65,7 +65,7 @@
       <div class="brand">
         <div class="brand-logo">🦖</div>
         <div class="brand-txt">
-          <h1>Dashboard Spinosaurio</h1>
+          <h1>Dashboard</h1>
           <p>Monitoreo de partidas y accesos</p>
         </div>
       </div>
@@ -89,6 +89,10 @@
           <option value="canjeado">✅ Canjeados (Entraron)</option>
         </select>
       </div>
+      <div class="filter-group">
+        <label for="f-fecha">Fecha</label>
+        <input type="date" id="f-fecha" class="filter-group select">
+      </div>
       <button id="btn-refresh" class="btn-refresh">⟳ Actualizar Datos</button>
     </section>
 
@@ -104,8 +108,8 @@
       </article>
 
       <article class="stat-card">
-        <div><div class="stat-label">Puntaje Máximo</div><div id="stat-max" class="stat-value">0</div></div>
-        <div class="stat-icon">🏆</div>
+        <div><div class="stat-label">Total Boletos Generados</div><div id="stat-total-boletos" class="stat-value">0</div></div>
+        <div class="stat-icon">🎫</div>
       </article>
     </section>
 
@@ -138,15 +142,31 @@
     // Variables DOM
     const selSala = document.getElementById('f-sala');
     const selEstatus = document.getElementById('f-estatus');
+    const selFecha = document.getElementById('f-fecha');
     const tbody = document.getElementById('tbody');
     const status = document.getElementById('status');
     
     const statQuizzes = document.getElementById('stat-quizzes');
     const statCanjeados = document.getElementById('stat-canjeados');
-    const statMax = document.getElementById('stat-max');
+    const statTotalBoletos = document.getElementById('stat-total-boletos');
 
     // Mapa para guardar nombres de salas
     let mapaSalas = {};
+
+    // Cargar métricas que no dependen de filtros
+    async function cargarMetricasGlobales() {
+      try {
+        const { count, error } = await supabase
+          .from('Ganadores')
+          .select('*', { count: 'exact', head: true });
+
+        if(error) throw error;
+        statTotalBoletos.textContent = count;
+      } catch (e) {
+        console.error("Error cargando métricas globales:", e);
+        statTotalBoletos.textContent = "Error";
+      }
+    }
 
     // 1. CARGAR SALAS
     async function cargarSalas() {
@@ -173,7 +193,7 @@
       try {
         let query = supabase
           .from('quizzes')
-          .select('*')
+          .select('*, salas(nombre)')
           .order('started_at', { ascending: false })
           .limit(100); // Límite aumentado para ver más historia
 
@@ -192,6 +212,14 @@
           }
         }
 
+        // Filtro por Fecha
+        if (selFecha.value) {
+          const fecha = selFecha.value;
+          const fechaInicio = new Date(fecha + 'T00:00:00Z').toISOString();
+          const fechaFin = new Date(fecha + 'T23:59:59Z').toISOString();
+          query = query.gte('started_at', fechaInicio).lte('started_at', fechaFin);
+        }
+
         const { data, error } = await query;
         
         if (error) {
@@ -204,16 +232,13 @@
         // (Calculamos sobre los datos traídos, si quieres métricas totales necesitas otra consulta, 
         // pero para dashboard rápido esto sirve)
         let totalCanjeados = 0;
-        let maxScore = 0;
 
         data.forEach(q => {
             if (q.estatus === 'canjeado') totalCanjeados++;
-            if (q.puntaje_total > maxScore) maxScore = q.puntaje_total;
         });
 
         statQuizzes.textContent = data.length;
         statCanjeados.textContent = totalCanjeados;
-        statMax.textContent = maxScore;
 
         if (data.length === 0) {
           tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px">No se encontraron registros.</td></tr>`;
@@ -225,7 +250,7 @@
         let html = '';
         data.forEach(jugada => {
           const fecha = new Date(jugada.started_at).toLocaleString();
-          const nombreSala = mapaSalas[jugada.sala_id] || 'Sala Desconocida';
+          const nombreSala = jugada.salas?.nombre || 'Sala Desconocida';
           
           // Definir apariencia del estatus
           let estatusHTML = `<span class="badge-status st-activo">ACTIVO</span>`;
@@ -257,11 +282,13 @@
     document.getElementById('btn-refresh').addEventListener('click', cargarJugadas);
     selSala.addEventListener('change', cargarJugadas);
     selEstatus.addEventListener('change', cargarJugadas);
+    selFecha.addEventListener('change', cargarJugadas);
 
     // Iniciar
     (async () => {
       await cargarSalas();
       await cargarJugadas();
+      await cargarMetricasGlobales();
     })();
 
   </script>
