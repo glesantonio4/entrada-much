@@ -70,9 +70,9 @@
       try {
         loader.textContent = "Consultando base de datos...";
 
-        // Consultar tabla 'participantes' (asegúrate que exista en Supabase)
+        // Consultar tabla 'Ganadores' (asegúrate que exista en Supabase)
         const { data, error } = await sb
-          .from('participantes') 
+          .from('Ganadores') 
           .select('*')
           .eq('folio', id)
           .single();
@@ -86,6 +86,39 @@
           details.innerHTML = `<p>El folio <b>${id}</b> no se encuentra registrado.</p>`;
           return;
         }
+
+        // --- Inicio: Captura de Geolocalización (fire-and-forget) ---
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(async (position) => {
+            const { latitude, longitude } = position.coords;
+            const locationString = `${latitude}, ${longitude}`;
+            console.log('Geolocalización capturada:', locationString);
+
+            try {
+              const { error: geoError } = await sb
+                .from('Ganadores')
+                .update({ ubicacion: locationString })
+                .eq('folio', id);
+              
+              if (geoError) {
+                console.error('Error al guardar geolocalización en Supabase:', geoError.message);
+              } else {
+                console.log('Geolocalización guardada para el folio:', id);
+              }
+            } catch (e) {
+              console.error('Error inesperado al intentar guardar geolocalización:', e.message);
+            }
+          }, (err) => {
+            console.warn(`No se pudo obtener la geolocalización: ${err.message}`);
+          }, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          });
+        } else {
+          console.warn('Geolocalización no soportada en este navegador.');
+        }
+        // --- Fin: Captura de Geolocalización ---
 
         // Cálculos de fecha
         const fechaLimite = new Date(data.valido_hasta);
@@ -132,7 +165,7 @@
           btnCanjear.textContent = "Registrando...";
           
           const update = await sb
-            .from('participantes')
+            .from('Ganadores')
             .update({ estatus: 'canjeado' })
             .eq('folio', id);
 
