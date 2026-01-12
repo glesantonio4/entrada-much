@@ -218,9 +218,9 @@
       }
 
       try {
-        // A. Insertar DIRECTAMENTE en 'participantes'
+        // A. Insertar DIRECTAMENTE en 'Ganadores'
         const { error } = await sb
-          .from('participantes') 
+          .from('Ganadores') 
           .insert([{
             folio: folio,
             nombre: nombre,
@@ -253,7 +253,7 @@
         console.error("Error Supabase:", err);
         // Alerta amigable si faltan las columnas en la base de datos
         if(err.message && err.message.includes('column')){
-             alert("Error: Faltan columnas en la tabla 'participantes'.");
+             alert("Error: Faltan columnas en la tabla 'Ganadores'.");
         } else {
              alert("Hubo un error al conectar con el servidor. Por favor intenta de nuevo.");
         }
