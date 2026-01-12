@@ -7,6 +7,7 @@
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
     :root{ --ink:#0b1220; --muted:#64748b; --turquesa:#06b6d4; --fucsia:#d946ef; --paper:#ffffff; --paper-line:#e5e7eb; --chip-bg:#ecfeff; --chip-ink:#075985; --whatsapp:#25D366; }
@@ -175,6 +176,64 @@
       function downloadImage(blob) {
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Boleto_MUCH.png'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
       }
+    });
+  </script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Configuracion de Supabase
+      const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const params = new URLSearchParams(window.location.search);
+      const folio = params.get('folio');
+
+      if (!folio) {
+        console.log('No se encontró folio en la URL, no se puede geolocalizar.');
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        console.log('Geolocalización no es soportada por este navegador.');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        console.log(`Coordenadas obtenidas: ${latitude}, ${longitude}`);
+
+        try {
+          // Usar Nominatim para geocodificación inversa
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          if (!response.ok) {
+            throw new Error(`Error de Nominatim: ${response.statusText}`);
+          }
+          const data = await response.json();
+          const locationName = data?.address?.leisure || data?.address?.amenity || data?.address?.tourism || data.display_name || 'Ubicación no encontrada';
+
+          console.log(`Ubicación encontrada: ${locationName}`);
+          
+          document.getElementById('tLugar').innerHTML = locationName;
+
+          // Actualizar Supabase
+          const { data: updateData, error } = await sb
+            .from('Ganadores')
+            .update({ ubicacion: locationName })
+            .eq('folio', folio);
+
+          if (error) {
+            throw error;
+          }
+
+          console.log('Ubicación actualizada en Supabase:', updateData);
+
+        } catch (error) {
+          console.error('Error al procesar la geolocalización o al actualizar Supabase:', error);
+        }
+      }, (error) => {
+        console.error('Error al obtener la geolocalización:', error.message);
+      });
     });
   </script>
 </body>
