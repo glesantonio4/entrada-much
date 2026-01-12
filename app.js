@@ -115,9 +115,9 @@ async function loadPreguntas(){
 async function ensureParticipanteId() {
   await initSupabase();
   try {
-    const { data, error } = await supabase.from('participantes').insert({}).select('id').single();
+    const { data, error } = await supabase.from('Ganadores').insert({}).select('id').single();
     if (error) {
-      const fallback = await supabase.from('participantes').select('id').limit(1);
+      const fallback = await supabase.from('Ganadores').select('id').limit(1);
       return fallback.data?.[0]?.id || null;
     }
     return data.id;
