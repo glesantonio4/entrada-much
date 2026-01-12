@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Prueba Supabase (Modo Compatible)</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: #111; color: white; font-family: sans-serif; padding: 20px; }
+        #log { border: 1px solid #444; padding: 20px; background: #000; min-height: 200px; white-space: pre-wrap; margin-top: 20px;}
+        .success { color: #0f0; }
+        .error { color: #f00; font-weight: bold; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #00c9b7; border: none; font-weight: bold; color: white; border-radius: 5px;}
+        button:hover { background: #009e91; }
+    </style>
+</head>
+<body>
+
+    <h1>Diagnóstico Final</h1>
+    <p>1. Asegúrate de tener INTERNET.</p>
+    <p>2. Dale clic al botón. Debería salir una alerta primero.</p>
+    
+    <button id="btnTest" onclick="probarConexion()">PROBAR REGISTRO AHORA</button>
+    
+    <div id="log">Esperando click...</div>
+
+    <script>
+        // CREDENCIALES
+        const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+
+        // Inicializar cliente (Usando la variable global 'supabase')
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const logDiv = document.getElementById('log');
+
+        function print(msg, type = 'normal') {
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            if (type === 'error') div.className = 'error';
+            if (type === 'success') div.className = 'success';
+            logDiv.appendChild(div);
+            console.log(msg);
+        }
+
+        async function probarConexion() {
+            logDiv.innerHTML = ''; 
+            print("Botón presionado. Iniciando...");
+            
+            const randomNum = Math.floor(Math.random() * 9000) + 1000;
+            const testUser = {
+                nombre: `Usuario Test ${randomNum}`,
+                correo: `test${randomNum}@prueba.com`,
+                telefono: '1234567890'
+            };
+
+            try {
+                // 1. INTENTO DE INSERTAR PARTICIPANTE
+                print(`Intentando insertar usuario: ${testUser.correo}...`);
+                
+                const { data, error } = await sb
+                    .from('participantes')
+                    .insert([testUser])
+                    .select();
+
+                if (error) {
+                    throw new Error(`ERROR SQL (Participantes): ${error.message} - Código: ${error.code}`);
+                }
+
+                if (!data || data.length === 0) {
+                    throw new Error("Supabase no devolvió datos. ¿Ejecutaste el script SQL para abrir los permisos (RLS)?");
+                }
+
+                print("✅ ÉXITO: Participante guardado. ID: " + data[0].id, 'success');
+
+                // 2. INTENTO DE INSERTAR BOLETO
+                print("Intentando generar boleto...");
+                const { error: errBoleto } = await sb
+                    .from('boletos')
+                    .insert([{
+                        folio: `TEST-${randomNum}`,
+                        participante_id: data[0].id
+                    }]);
+
+                if (errBoleto) {
+                    throw new Error(`ERROR BOLETO: ${errBoleto.message}`);
+                }
+
+                print("✅ ÉXITO TOTAL: Boleto guardado.", 'success');
+                alert("¡FUNCIONÓ! Ya puedes usar tu página normal.");
+
+            } catch (e) {
+                print("❌ FALLO:", 'error');
+                print(e.message, 'error');
+                alert("Hubo un error. Revisa el texto rojo en pantalla.");
+            }
+        }
+    </script>
+</body>
+</html>

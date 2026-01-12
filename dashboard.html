@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>MUCH • Dashboard Spinosaurio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg:#020617; --bg-card:#0b1120; --border-soft:#1f2937;
+      --accent:#06b6d4; --accent-soft:#0ea5e9; --accent-strong:#d946ef;
+      --text-main:#e5e7eb; --text-muted:#9ca3af;
+      --danger:#f97373; --success:#22c55e; --warning:#facc15;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; height:100%; font-family:system-ui,-apple-system,sans-serif; background: var(--bg); color:var(--text-main); }
+    body{ display:flex; flex-direction:column; background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); }
+
+    .page{ max-width:1200px; margin:0 auto; padding:20px 16px 32px; width: 100%; }
+    header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
+    
+    .brand{ display:flex; align-items:center; gap:12px; }
+    .brand-logo{ width:44px; height:44px; border-radius:12px; background:#0f172a; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:20px; color:var(--accent-strong); border:1px solid rgba(255,255,255,0.1); }
+    .brand-txt h1{ font-size:22px; margin:0; font-weight: 800; letter-spacing: -0.5px; }
+    .brand-txt p{ margin:4px 0 0; font-size:13px; color:var(--text-muted); }
+
+    /* Filtros */
+    .filters-card{ background:rgba(30,41,59,0.5); border-radius:16px; padding:16px; border:1px solid var(--border-soft); display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; margin-bottom:24px; }
+    .filter-group{ display:flex; flex-direction:column; gap:6px; flex:1; min-width: 150px; }
+    .filter-group label{ font-size:12px; font-weight:700; color:var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-group select{ background:#0f172a; border-radius:8px; border:1px solid var(--border-soft); padding:10px 12px; color:#fff; font-size:14px; outline:none; }
+    
+    .btn-refresh{ border-radius:8px; border:0; padding:10px 20px; background:var(--accent-soft); color:#fff; font-weight:700; cursor:pointer; transition: transform 0.2s; }
+    .btn-refresh:hover { background: var(--accent); transform: translateY(-2px); }
+
+    /* Stats */
+    .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
+    .stat-card{ background:#0f172a; border-radius:16px; padding:20px; border:1px solid var(--border-soft); display:flex; justify-content:space-between; align-items:start; }
+    .stat-label{ font-size:13px; color:var(--text-muted); margin-bottom:8px; }
+    .stat-value{ font-size:28px; font-weight:800; color:white; }
+    .stat-icon { font-size: 24px; opacity: 0.5; }
+    
+    /* Color especial para canjeados */
+    .text-green { color: var(--success); }
+
+    /* Tabla */
+    .table-wrapper{ background:#0f172a; border-radius:16px; border:1px solid var(--border-soft); overflow:hidden; }
+    .table-scroll{ overflow-x:auto; }
+    table{ width:100%; border-collapse:collapse; font-size:14px; text-align:left; }
+    th{ background:#1e293b; padding:14px 16px; font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700; }
+    td{ padding:14px 16px; border-bottom:1px solid var(--border-soft); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    
+    .pill-sala { background: rgba(14, 165, 233, 0.15); color: var(--accent-soft); padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid rgba(14, 165, 233, 0.3); }
+    .score-high { color: #fff; font-weight: bold; }
+
+    /* Estatus Badges */
+    .badge-status { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+    .st-activo { background: rgba(250, 204, 21, 0.15); color: var(--warning); border: 1px solid rgba(250, 204, 21, 0.3); }
+    .st-canjeado { background: rgba(34, 197, 94, 0.15); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.3); }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="brand">
+        <div class="brand-logo">🦖</div>
+        <div class="brand-txt">
+          <h1>Dashboard Spinosaurio</h1>
+          <p>Monitoreo de partidas y accesos</p>
+        </div>
+      </div>
+      <div>
+        <p id="status" style="font-size:12px; color:var(--text-muted); margin:0;">Conectando...</p>
+      </div>
+    </header>
+
+    <section class="filters-card">
+      <div class="filter-group">
+        <label for="f-sala">Sala</label>
+        <select id="f-sala">
+          <option value="">Todas las salas</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="f-estatus">Estatus del Boleto</label>
+        <select id="f-estatus">
+          <option value="">Todos</option>
+          <option value="activo">⏳ Activos (Sin usar)</option>
+          <option value="canjeado">✅ Canjeados (Entraron)</option>
+        </select>
+      </div>
+      <button id="btn-refresh" class="btn-refresh">⟳ Actualizar Datos</button>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card">
+        <div><div class="stat-label">Partidas Totales</div><div id="stat-quizzes" class="stat-value">0</div></div>
+        <div class="stat-icon">🎮</div>
+      </article>
+      
+      <article class="stat-card">
+        <div><div class="stat-label">Boletos Canjeados</div><div id="stat-canjeados" class="stat-value text-green">0</div></div>
+        <div class="stat-icon">🎟️</div>
+      </article>
+
+      <article class="stat-card">
+        <div><div class="stat-label">Puntaje Máximo</div><div id="stat-max" class="stat-value">0</div></div>
+        <div class="stat-icon">🏆</div>
+      </article>
+    </section>
+
+    <section class="table-wrapper">
+      <div class="table-scroll">
+        <table id="tabla">
+          <thead>
+            <tr>
+              <th>Fecha / Hora</th>
+              <th>Sala</th>
+              <th>Puntaje</th>
+              <th>Estatus</th> <th>ID Sistema</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="5" style="text-align:center; padding:20px; color:#666;">Cargando datos...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Variables DOM
+    const selSala = document.getElementById('f-sala');
+    const selEstatus = document.getElementById('f-estatus');
+    const tbody = document.getElementById('tbody');
+    const status = document.getElementById('status');
+    
+    const statQuizzes = document.getElementById('stat-quizzes');
+    const statCanjeados = document.getElementById('stat-canjeados');
+    const statMax = document.getElementById('stat-max');
+
+    // Mapa para guardar nombres de salas
+    let mapaSalas = {};
+
+    // 1. CARGAR SALAS
+    async function cargarSalas() {
+      try {
+        const { data, error } = await supabase.from('salas').select('*');
+        if (error) throw error;
+        
+        selSala.innerHTML = '<option value="">Todas las salas</option>';
+        data.forEach(sala => {
+          mapaSalas[sala.id] = sala.nombre;
+          const opt = document.createElement('option');
+          opt.value = sala.id;
+          opt.textContent = sala.nombre;
+          selSala.appendChild(opt);
+        });
+      } catch (e) {
+        console.error("Error salas:", e);
+      }
+    }
+
+    // 2. CARGAR JUGADAS
+    async function cargarJugadas() {
+      status.textContent = "Actualizando...";
+      try {
+        let query = supabase
+          .from('quizzes')
+          .select('*')
+          .order('started_at', { ascending: false })
+          .limit(100); // Límite aumentado para ver más historia
+
+        // Filtro por Sala
+        if (selSala.value) {
+          query = query.eq('sala_id', selSala.value);
+        }
+
+        // Filtro por Estatus
+        if (selEstatus.value) {
+          if (selEstatus.value === 'activo') {
+            // Buscamos 'activo' o null (los viejos que no tenían campo son activos)
+            query = query.or('estatus.eq.activo,estatus.is.null');
+          } else {
+            query = query.eq('estatus', selEstatus.value);
+          }
+        }
+
+        const { data, error } = await query;
+        
+        if (error) {
+          tbody.innerHTML = `<tr><td colspan="5" style="color:salmon; text-align:center">Error de conexión</td></tr>`;
+          console.error(error);
+          return;
+        }
+
+        // --- CÁLCULO DE MÉTRICAS ---
+        // (Calculamos sobre los datos traídos, si quieres métricas totales necesitas otra consulta, 
+        // pero para dashboard rápido esto sirve)
+        let totalCanjeados = 0;
+        let maxScore = 0;
+
+        data.forEach(q => {
+            if (q.estatus === 'canjeado') totalCanjeados++;
+            if (q.puntaje_total > maxScore) maxScore = q.puntaje_total;
+        });
+
+        statQuizzes.textContent = data.length;
+        statCanjeados.textContent = totalCanjeados;
+        statMax.textContent = maxScore;
+
+        if (data.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px">No se encontraron registros.</td></tr>`;
+          status.textContent = "Listo (Sin datos)";
+          return;
+        }
+
+        // --- RENDERIZAR TABLA ---
+        let html = '';
+        data.forEach(jugada => {
+          const fecha = new Date(jugada.started_at).toLocaleString();
+          const nombreSala = mapaSalas[jugada.sala_id] || 'Sala Desconocida';
+          
+          // Definir apariencia del estatus
+          let estatusHTML = `<span class="badge-status st-activo">ACTIVO</span>`;
+          if (jugada.estatus === 'canjeado') {
+            estatusHTML = `<span class="badge-status st-canjeado">CANJEADO</span>`;
+          }
+
+          html += `
+            <tr>
+              <td>${fecha}</td>
+              <td><span class="pill-sala">${nombreSala}</span></td>
+              <td class="score-high">${jugada.puntaje_total} pts</td>
+              <td>${estatusHTML}</td>
+              <td style="color:#666; font-size:11px; font-family:monospace">${jugada.id.slice(0,8)}...</td>
+            </tr>
+          `;
+        });
+
+        tbody.innerHTML = html;
+        status.textContent = "Actualizado correctamente";
+
+      } catch (e) {
+        console.error(e);
+        status.textContent = "Error de conexión";
+      }
+    }
+
+    // Eventos
+    document.getElementById('btn-refresh').addEventListener('click', cargarJugadas);
+    selSala.addEventListener('change', cargarJugadas);
+    selEstatus.addEventListener('change', cargarJugadas);
+
+    // Iniciar
+    (async () => {
+      await cargarSalas();
+      await cargarJugadas();
+    })();
+
+  </script>
+</body>
+</html>

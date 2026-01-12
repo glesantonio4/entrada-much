@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Write test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="font-family: system-ui; padding:24px">
+  <h1>Prueba de INSERT en quizzes</h1>
+  <pre id="out">Ejecutando…</pre>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+    const out = document.getElementById('out');
+
+const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function getSalaId() {
+      // 1) intenta desde tabla salas
+      let { data, error } = await supabase.from('salas').select('id').limit(1);
+      if (!error && data?.length) return data[0].id;
+
+      // 2) si no hay salas, toma uno existente en quizzes
+      ({ data, error } = await supabase
+        .from('quizzes')
+        .select('sala_id')
+        .not('sala_id','is', null)
+        .order('started_at', { ascending: false })
+        .limit(1));
+      if (!error && data?.length) return data[0].sala_id;
+
+      throw new Error('No se encontró sala_id válido.');
+    }
+
+    async function getParticipanteId() {
+      // 1) toma un participante ya usado en quizzes
+      let { data, error } = await supabase
+        .from('quizzes')
+        .select('participante_id')
+        .not('participante_id','is', null)
+        .order('started_at', { ascending: false })
+        .limit(1);
+      if (!error && data?.length) return data[0].participante_id;
+
+      // 2) intenta desde participantes
+      ({ data, error } = await supabase.from('participantes').select('id').limit(1));
+      if (!error && data?.length) return data[0].id;
+
+      // 3) último recurso: insertar un participante vacío (si tu esquema lo permite)
+      const ins = await supabase.from('participantes').insert({}).select('id').single();
+      if (ins.error) throw ins.error;
+      return ins.data.id;
+    }
+
+    (async () => {
+      try {
+        const [sala_id, participante_id] = await Promise.all([
+          getSalaId(),
+          getParticipanteId()
+        ]);
+
+        const payload = {
+          sala_id,
+          participante_id,
+          started_at: new Date().toISOString(),
+          num_preguntas: 6
+        };
+
+        const { data, error } = await supabase
+          .from('quizzes')
+          .insert(payload)
+          .select('id, started_at')
+          .single();
+
+        if (error) {
+          out.textContent = '❌ Error: ' + error.message;
+        } else {
+          out.textContent = '✅ Insertado: ' + JSON.stringify(data, null, 2);
+        }
+      } catch (e) {
+        out.textContent = '❌ Excepción: ' + (e?.message || e);
+      }
+    })();
+  </script>
+</body>
+</html>

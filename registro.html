@@ -1,0 +1,279 @@
+<!DOCTYPE html> 
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Registro para obtener tu premio</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root{
+      --card-bg:#23272f; --card-br:18px; --shadow-soft:0 2px 12px rgba(0,0,0,.12);
+      --gris-200:#e5e7eb; --gris-300:#d1d5db; --gris-600:#4b5563; --gris-700:#374151;
+      --fucsia:#e6007a; --turquesa:#00c9b7; --error:#ef4444; --ok:#10b981;
+    }
+    body{
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      min-height:100vh; padding:30px; background:#181a20; color:#fff; font-family: sans-serif; margin:0;
+    }
+    .registro-container{
+      background:var(--card-bg); border-radius:var(--card-br); box-shadow:var(--shadow-soft);
+      padding:24px 22px 26px; width:100%; max-width:520px; border:1px solid var(--gris-600);
+      box-sizing: border-box;
+    }
+    .logo-wrap{ display:flex; justify-content:center; margin-bottom:10px; }
+    .brand-logo{ width: clamp(120px, 42vw, 220px); max-width: 70%; height: auto; display:block;
+      image-rendering:-webkit-optimize-contrast; 
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,.35)); }
+
+    h2{ text-align:center; margin:8px 0 14px; color:var(--fucsia); line-height:1.2; }
+    p.lead{ text-align:center; margin:0 0 18px; color:#cbd5e1; }
+
+    .form-group{ margin-bottom:18px; }
+    .form-group label{ font-weight:700; display:block; margin-bottom:8px; color:#e5e7eb; }
+    .form-group input{ width:100%; padding:12px; border-radius:10px; border:1px solid var(--gris-600);
+      font-size:16px; background:#0f1218; color:#fff; outline:none; box-sizing: border-box; }
+    .form-group input:focus{ border-color:var(--turquesa); box-shadow:0 0 0 3px rgba(0,201,183,.2); }
+    
+    .hint{ font-size:.85rem; color:#9ca3af; margin-top:6px; }
+    .error-msg{ font-size:.85rem; color:var(--error); margin-top:6px; display:none; }
+    .is-invalid{ border-color:var(--error) !important; box-shadow:0 0 0 3px rgba(239,68,68,.2) !important; }
+
+    .submit-btn{
+      background:linear-gradient(90deg, var(--turquesa), var(--fucsia));
+      color:#fff; font-weight:800; padding:14px; border:0; border-radius:12px;
+      width:100%; cursor:pointer; font-size:18px; transition:opacity .2s, transform .02s;
+    }
+    .submit-btn:active{ transform:scale(.995); }
+    .submit-btn:disabled{ opacity:.6; cursor:not-allowed; background: #555; }
+
+    @media (max-width: 360px){
+      .registro-container{ padding:18px 16px 22px; }
+      h2{ font-size:1.15rem; }
+      .brand-logo{ width: clamp(110px, 50vw, 180px); }
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .modal-content {
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: var(--card-br);
+      border: 1px solid var(--gris-600);
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      color: var(--gris-200);
+      box-shadow: 0 5px 20px rgba(0,0,0,.3);
+    }
+    .modal-content p {
+      margin: 0 0 20px;
+      font-size: 1.1rem;
+      line-height: 1.5;
+    }
+    #modalCloseBtn {
+      width: auto;
+      padding: 10px 30px;
+    }
+  </style>
+</head>
+<body>
+  <div id="infoModal" class="modal-overlay">
+    <div class="modal-content">
+      <p>Presenta tu credencial de estudiante para validar tu entrada. Si no eres estudiante, presenta tu credencial de elector en taquilla para validar tu boleto.</p>
+      <button id="modalCloseBtn" class="submit-btn">Entendido</button>
+    </div>
+  </div>
+  <div class="registro-container">
+    <div class="logo-wrap">
+      <img src="./logo-much.png" alt="MUCH · Museo de Ciencia y Tecnología" class="brand-logo" onerror="this.style.display='none'">
+    </div>
+
+    <h2>Regístrate para reclamar tu premio 🐆</h2>
+    <p class="lead">Gracias por Visitar el MUCH</p>
+
+    <form id="registroForm" autocomplete="off" novalidate>
+      <div class="form-group">
+        <label for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" name="nombre" required placeholder="Ej. Celi Glescanni" />
+        <div class="hint">Usa al menos dos palabras.</div>
+        <div class="error-msg" id="err-nombre"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="correo">Correo electrónico</label>
+        <input type="email" id="correo" name="correo" required placeholder="tucorreo@dominio.com" />
+        <div class="error-msg" id="err-correo"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="telefono">Número de teléfono</label>
+        <input type="tel" id="telefono" name="telefono" required placeholder="Agrega 10 dígitos" maxlength="10" />
+        <div class="hint">Solo 10 dígitos.</div>
+        <div class="error-msg" id="err-telefono"></div>
+      </div>
+
+      <button type="submit" id="submitBtn" class="submit-btn">Obtener mi Boleto</button>
+    </form>
+  </div>
+
+  <script>
+    // 1. CONFIGURACIÓN SUPABASE
+    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+    
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // 2. VALIDACIONES VISUALES
+    const $ = (id) => document.getElementById(id);
+    const reEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+    const rePhone = /^\d{10}$/;
+
+    function setError(inputEl, errEl, msg){ 
+        inputEl.classList.add('is-invalid'); 
+        errEl.textContent = msg; 
+        errEl.style.display = 'block'; 
+    }
+    function clearError(inputEl, errEl){ 
+        inputEl.classList.remove('is-invalid'); 
+        errEl.textContent = ''; 
+        errEl.style.display = 'none'; 
+    }
+
+    // 3. LÓGICA DE ENVÍO
+    document.getElementById('registroForm').addEventListener('submit', async function(e){
+      e.preventDefault();
+      
+      const btn = $('submitBtn');
+      const nombreInput = $('nombre');
+      const correoInput = $('correo');
+      const telefonoInput = $('telefono');
+
+      // --- Validaciones Rápidas ---
+      let isValid = true;
+      
+      // Nombre
+      if(nombreInput.value.trim().length < 5) {
+         setError(nombreInput, $('err-nombre'), "Escribe tu nombre completo.");
+         isValid = false;
+      } else clearError(nombreInput, $('err-nombre'));
+
+      // Correo
+      if(!reEmail.test(correoInput.value.trim())) {
+         setError(correoInput, $('err-correo'), "Correo no válido.");
+         isValid = false;
+      } else clearError(correoInput, $('err-correo'));
+
+      // Teléfono
+      if(!rePhone.test(telefonoInput.value.trim())) {
+         setError(telefonoInput, $('err-telefono'), "Debe tener 10 dígitos.");
+         isValid = false;
+      } else clearError(telefonoInput, $('err-telefono'));
+
+      if(!isValid) return; 
+
+      // --- PROCESO SUPABASE ---
+      btn.disabled = true;
+      btn.textContent = "Generando boleto...";
+
+      const nombre = nombreInput.value.trim();
+      const correo = correoInput.value.trim();
+      const telefono = telefonoInput.value.trim();
+      
+      // --- Lógica de Asignación Aleatoria ---
+      const tiposDeEntrada = ['Planetario', 'Museo', 'General'];
+      const tipoEntrada = tiposDeEntrada[Math.floor(Math.random() * tiposDeEntrada.length)];
+
+      let folio, titulo, ubicacion;
+      const numeroAleatorio = Math.floor(Math.random() * 100000);
+
+      switch (tipoEntrada) {
+        case 'Planetario':
+          folio = `PLAN-${numeroAleatorio}`;
+          titulo = 'Entrada Planetario';
+          ubicacion = 'Planetario Tuxtla "Jaime Sabines Gutiérrez", Calz. de los Hombres Ilustres S/N, Tuxtla Gutiérrez';
+          break;
+        case 'Museo':
+          folio = `MUCH-${numeroAleatorio}`;
+          titulo = 'Entrada MUCH';
+          ubicacion = 'Museo Chiapas de Ciencia y Tecnología, Calzada Cerro Hueco S/N, Tuxtla Gutiérrez';
+          break;
+        case 'General':
+          folio = `GRAL-${numeroAleatorio}`;
+          titulo = 'Entrada General (MUCH y Planetario)';
+          ubicacion = '<b>MUSEO CHIAPAS:</b> Museo Chiapas de Ciencia y Tecnología, Calzada Cerro Hueco S/N, Tuxtla Gutiérrez<br><br><b>PLANETARIO TUXTLA:</b> Planetario Tuxtla "Jaime Sabines Gutiérrez", Calz. de los Hombres Ilustres S/N, Tuxtla Gutiérrez';
+          break;
+      }
+
+      try {
+        // A. Insertar DIRECTAMENTE en 'participantes'
+        const { error } = await sb
+          .from('participantes') 
+          .insert([{
+            folio: folio,
+            nombre: nombre,
+            correo: correo,
+            telefono: telefono,
+            tipo_entrada: tipoEntrada, // Opcional: guardar el tipo
+            valido_desde: new Date(),
+            valido_hasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          }]);
+
+        if (error) throw error;
+
+        // B. Éxito y Redirección
+        btn.style.background = "#10b981"; // Verde éxito
+        btn.textContent = "¡Listo!";
+        
+        setTimeout(() => {
+            const params = new URLSearchParams({
+                folio: folio,
+                nombre: nombre,
+                correo: correo,
+                telefono: telefono,
+                titulo: titulo,
+                ubicacion: ubicacion
+            });
+            window.location.href = `boleto.html?${params.toString()}`;
+        }, 800);
+
+      } catch (err) {
+        console.error("Error Supabase:", err);
+        // Alerta amigable si faltan las columnas en la base de datos
+        if(err.message && err.message.includes('column')){
+             alert("Error: Faltan columnas en la tabla 'participantes'.");
+        } else {
+             alert("Hubo un error al conectar con el servidor. Por favor intenta de nuevo.");
+        }
+        btn.disabled = false;
+        btn.textContent = "Obtener mi Boleto";
+        btn.style.background = ""; 
+      }
+    });
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('infoModal');
+      const closeBtn = document.getElementById('modalCloseBtn');
+
+      // Show the modal by default
+      modal.style.display = 'flex';
+
+      // Hide the modal on button click
+      closeBtn.addEventListener('click', () => {
+        modal.style.display = 'none';
+      });
+    });
+  </script>
+</body>
+</html>

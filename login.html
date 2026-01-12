@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>MUCH • Acceso al panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#020617;
+      --card:#0b1120;
+      --border:#1f2937;
+      --accent:#06b6d4;
+      --accent-soft:#0ea5e9;
+      --accent-strong:#d946ef;
+      --text-main:#e5e7eb;
+      --text-muted:#9ca3af;
+      --danger:#f97373;
+    }
+    *{ box-sizing:border-box; }
+    html,body{
+      margin:0;
+      padding:0;
+      height:100%;
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+      background:
+        radial-gradient(1200px 800px at 0% 0%, rgba(56,189,248,0.12), transparent 60%),
+        radial-gradient(1200px 800px at 100% 100%, rgba(244,114,182,0.18), transparent 60%),
+        var(--bg);
+      color:var(--text-main);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .login-shell{
+      width:100%;
+      max-width:420px;
+      padding:20px 16px;
+    }
+    .card{
+      background:rgba(11,17,32,.96);
+      border-radius:18px;
+      border:1px solid var(--border);
+      padding:22px 20px 24px;
+      box-shadow:0 18px 40px rgba(15,23,42,.8);
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .brand-logo{
+      width:40px;
+      height:40px;
+      border-radius:12px;
+      background:#020617;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      font-size:18px;
+      color:var(--accent-strong);
+      box-shadow:0 10px 30px rgba(15,23,42,.7);
+      border:1px solid rgba(148,163,184,.4);
+    }
+    .brand h1{
+      margin:0;
+      font-size:18px;
+    }
+    .brand p{
+      margin:2px 0 0;
+      font-size:13px;
+      color:var(--text-muted);
+    }
+
+    form{
+      margin-top:16px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+    label{
+      font-size:13px;
+      font-weight:600;
+      color:var(--text-muted);
+      display:block;
+      margin-bottom:4px;
+    }
+    input{
+      width:100%;
+      border-radius:999px;
+      border:1px solid var(--border);
+      padding:9px 12px;
+      font-size:14px;
+      background:#020617;
+      color:var(--text-main);
+      outline:none;
+    }
+    input:focus{
+      border-color:var(--accent-soft);
+      box-shadow:0 0 0 1px rgba(56,189,248,.5);
+    }
+    .btn{
+      border-radius:999px;
+      border:0;
+      padding:10px 14px;
+      margin-top:8px;
+      background:linear-gradient(135deg,var(--accent-soft),var(--accent-strong));
+      color:#fff;
+      font-weight:700;
+      font-size:14px;
+      cursor:pointer;
+      box-shadow:0 12px 30px rgba(56,189,248,.35);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+    }
+    .btn[disabled]{
+      opacity:.7;
+      cursor:not-allowed;
+    }
+
+    #msg{
+      margin-top:10px;
+      font-size:13px;
+      color:var(--text-muted);
+      min-height:18px;
+      white-space:pre-line;
+    }
+    #msg.error{
+      color:var(--danger);
+    }
+    #msg.ok{
+      color:var(--accent);
+    }
+
+    @media (max-width:480px){
+      .card{
+        padding:18px 16px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-shell">
+    <div class="card">
+      <div class="brand">
+        <div class="brand-logo">M</div>
+        <div>
+          <h1>MUCH · Acceso</h1>
+          <p>Panel interno solo para personal autorizado.</p>
+        </div>
+      </div>
+
+      <form id="loginForm" autocomplete="off">
+        <div>
+          <label for="email">Correo institucional</label>
+          <input type="email" id="email" required placeholder="tucorreo@dominio.com" autocomplete="email" />
+        </div>
+        <div>
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" required placeholder="••••••••" />
+        </div>
+        <button type="submit" id="btnLogin" class="btn">
+          <span>Entrar al dashboard</span>
+        </button>
+      </form>
+
+      <p id="msg"></p>
+    </div>
+  </div>
+
+  <script>
+    // Mostrar errores JS en pantalla si algo raro pasa
+    const msgEl = document.getElementById('msg');
+    window.addEventListener('error', (e) => {
+      msgEl.textContent = 'Error de script: ' + (e?.message || e);
+      msgEl.classList.add('error');
+      console.error(e);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      msgEl.textContent = 'Error no controlado: ' + (e?.reason?.message || e?.reason || e);
+      msgEl.classList.add('error');
+      console.error(e);
+    });
+  </script>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('loginForm');
+    const msg  = document.getElementById('msg');
+    const btn  = document.getElementById('btnLogin');
+
+    function setMsg(text, type=''){
+      msg.textContent = text || '';
+      msg.classList.remove('error','ok');
+      if (type) msg.classList.add(type);
+    }
+
+    // Si ya hay sesión activa, redirige directo al dashboard
+    (async () => {
+      setMsg('Verificando sesión...', '');
+      const { data, error } = await supabase.auth.getSession();
+      if (!error && data?.session) {
+        setMsg('Sesión activa. Redirigiendo…', 'ok');
+        window.location.href = 'dashboard.html';
+        return;
+      }
+      setMsg('');
+    })();
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = (document.getElementById('email').value || '').trim();
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        setMsg('Escribe tu correo y contraseña.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      setMsg('Iniciando sesión…', '');
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.error('signIn error:', error);
+        setMsg('Error al iniciar sesión: ' + error.message, 'error');
+        btn.disabled = false;
+        return;
+      }
+
+      setMsg('Acceso correcto. Redirigiendo…', 'ok');
+      // Redirige al dashboard
+      window.location.href = 'dashboard.html';
+    });
+  </script>
+</body>
+</html>
