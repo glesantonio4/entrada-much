@@ -250,7 +250,11 @@
         let html = '';
         data.forEach(jugada => {
           const fecha = new Date(jugada.started_at).toLocaleString();
-          const nombreSala = jugada.salas?.nombre || 'Sala Desconocida';
+          const nombreSala = jugada.salas?.nombre || mapaSalas[jugada.sala_id] || 'Sala Desconocida';
+
+          if (nombreSala === 'Sala Desconocida') {
+            console.log("Fallo en ID: " + jugada.id + " | Sala ID buscado: " + jugada.sala_id);
+          }
           
           // Definir apariencia del estatus
           let estatusHTML = `<span class="badge-status st-activo">ACTIVO</span>`;

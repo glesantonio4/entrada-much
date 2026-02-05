@@ -2,20 +2,22 @@
 const params = new URLSearchParams(location.search);
 const SALA = params.get('sala') || 'Exploración';
 const NUM_QUESTIONS = 6;
-// Función para mezclar arrays (Fisher-Yates)
+// Función para mezclar arrays
 const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
 
 // Placeholder: Se llenará desde el JSON
 let QUESTIONS = [];
+// 🔒 BANDERA DE SEGURIDAD (Evita dobles registros al dar clic rápido)
+let quizIniciando = false; 
 
 /* ================================================================= */
-/* ==== SUPABASE: SOLO PARA GUARDAR PUNTAJE Y GENERAR QR ======= */
+/* ==== SUPABASE: CONEXIÓN Y LÓGICA DE BASE DE DATOS =========== */
 /* ================================================================= */
 
 const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
 
-// 🔒 ID EXACTO DE LA SALA "ENTRADA MUCH" (Para que salga en el Dashboard)
+// 🔒 ID EXACTO DE LA SALA "ENTRADA MUCH" 
 const SALA_ENTRADA_ID = '6d66b495-cf43-42c1-b7f8-627ceb6fe33d';
 
 let supabase = null;
@@ -28,17 +30,24 @@ async function initSupabase() {
   return supabase;
 }
 
+// ⏰ FUNCIÓN CRÍTICA: Obtener hora exacta de México
+function getMexicoTime() {
+  const ahora = new Date();
+  // Restamos el desfase (en minutos) para ajustar a hora local manualmente
+  const offsetMexico = ahora.getTimezoneOffset() * 60000; 
+  const localTime = new Date(ahora.getTime() - offsetMexico);
+  return localTime.toISOString();
+}
+
 // ------------------------------------------------------------
-// 1. CARGAR PREGUNTAS DESDE ARCHIVO JSON (RESTAURADO)
+// 1. CARGAR PREGUNTAS DESDE ARCHIVO JSON
 // ------------------------------------------------------------
 async function loadPreguntas(){
   try{
-    // Buscamos el archivo local preguntas.json
     const resp = await fetch('preguntas.json', { cache: 'no-store' });
     if(!resp.ok) throw new Error('No se pudo cargar preguntas.json: ' + resp.status);
     let bank = await resp.json();
 
-    // Lógica para detectar si el JSON viene por salas o es una lista directa
     if (!Array.isArray(bank)) {
       const keys = Object.keys(bank || {});
       if (keys.length && bank[SALA]) {
@@ -52,27 +61,23 @@ async function loadPreguntas(){
     if(!Array.isArray(bank) || bank.length===0)
       throw new Error('preguntas.json no contiene un array de preguntas');
 
-    // Normalizamos los datos para evitar errores si faltan campos
     const normalize = (it) => {
       const text = it.text ?? it.pregunta ?? it.enunciado ?? 'Pregunta sin texto';
       const desc = it.desc ?? it.descripcion ?? '';
       let options = it.options ?? it.opciones ?? it.respuestas ?? [];
       let correctIndex = it.correctIndex ?? it.correcta_index;
 
-      // Si las opciones son objetos
       if (Array.isArray(options) && typeof options[0] === 'object') {
         const idx = options.findIndex(o => o.correcta === true || o.esCorrecta === true);
         if (correctIndex == null && idx >= 0) correctIndex = idx;
         options = options.map(o => o.text ?? o.texto ?? o.label ?? String(o));
       }
 
-      // Si la respuesta correcta viene como texto
       if (correctIndex == null && typeof it.correcta === 'string') {
         const idx2 = options.findIndex(o => String(o).trim() === String(it.correcta).trim());
         if (idx2 >= 0) correctIndex = idx2;
       }
 
-      // Si la respuesta correcta viene como número (1-4)
       if (correctIndex == null && (it.respuesta || it.respuesta_correcta)) {
         const num = (it.respuesta ?? it.respuesta_correcta) - 1;
         if (!Number.isNaN(num)) correctIndex = num;
@@ -90,7 +95,6 @@ async function loadPreguntas(){
       return { text, options, correctIndex, points, desc };
     };
 
-    // Filtramos por sala si el JSON tiene la propiedad "sala"
     const bySala = bank.filter(q =>
       !q?.sala && !q?.sala_codigo ? true :
       (q.sala === SALA || q.sala_codigo === SALA)
@@ -110,42 +114,114 @@ async function loadPreguntas(){
 }
 
 // ------------------------------------------------------------
-// 2. GESTIÓN DE JUGADORES Y PUNTAJES (CONECTADO A BD)
+// 2. GESTIÓN DE JUGADORES Y PUNTAJES
 // ------------------------------------------------------------
 async function ensureParticipanteId() {
   await initSupabase();
+  
+  // 1. Verificamos si ya tenemos el ID numérico guardado
+  const existingId = sessionStorage.getItem("usuario_id");
+  if (existingId) {
+    console.log("ID recuperado de sesión:", existingId);
+    return existingId;
+  }
+
+  // 2. Si no hay ID, creamos uno nuevo
   try {
-    const { data, error } = await supabase.from('Ganadores').insert({}).select('id').single();
+    console.log("Creando jugador temporal en Ganadores...");
+    const { data, error } = await supabase
+      .from('Ganadores') 
+      .insert([
+        {
+          nombre: 'Jugador Anónimo', 
+          correo: 'anonimo@quiz.temp',
+          telefono: '0000000000',
+          folio: 'TEMP-' + Math.floor(Math.random() * 100000), 
+          valido_desde: getMexicoTime() // <--- HORA MÉXICO AQUÍ
+        }
+      ])
+      .select('id')
+      .single();
+
     if (error) {
+      console.error("Error creando jugador:", error.message);
+      // Fallback de emergencia
       const fallback = await supabase.from('Ganadores').select('id').limit(1);
       return fallback.data?.[0]?.id || null;
     }
+
+    console.log("Jugador temporal creado con ID:", data.id);
+    sessionStorage.setItem("usuario_id", data.id);
     return data.id;
-  } catch (e) { return null; }
+
+  } catch (e) {
+    console.error("Error fatal en ensureParticipanteId:", e);
+    return null;
+  }
 }
 
 async function startQuizInDB() {
+  // 🔒 FRENO DE MANO: Si ya se está iniciando, NO hagas nada más.
+  if (quizIniciando) return sessionStorage.getItem('much_current_quiz_id');
+  quizIniciando = true; // Activamos el bloqueo
+
   try {
     await initSupabase();
-    // Usamos el ID fijo de la sala para que el Dashboard funcione
+
+    // 1. Verificar si ya existe un juego activo en sesión (Recarga de página)
+    const juegoActivo = sessionStorage.getItem('much_current_quiz_id');
+    if (juegoActivo) {
+        console.log("Juego recuperado de sesión:", juegoActivo);
+        // Importante: No ponemos quizIniciando = false aquí porque ya tenemos ID
+        return juegoActivo; 
+    }
+    
+    // Obtenemos IDs necesarios
     const sala_id = SALA_ENTRADA_ID; 
     const participante_id = await ensureParticipanteId();
 
+    if (!participante_id) {
+        console.error("❌ No se pudo obtener ID de participante.");
+        quizIniciando = false; // Soltamos el freno si falla
+        return null;
+    }
+
+    // 2. Preparamos datos con HORA EXACTA
     const payload = {
       sala_id: sala_id,
       participante_id: participante_id,
-      started_at: new Date().toISOString(),
+      started_at: getMexicoTime(), // <--- HORA MÉXICO AQUÍ
       num_preguntas: NUM_QUESTIONS,
       puntaje_total: 0,
-      num_correctas: 0
+      num_correctas: 0,
+      estatus: 'activo'
     };
 
-    const { data, error } = await supabase.from('quizzes').insert(payload).select('id').single();
-    if (error) return null; 
+    console.log("Guardando partida nueva...");
 
+    const { data, error } = await supabase
+        .from('quizzes')
+        .insert(payload)
+        .select('id')
+        .single();
+    
+    if (error) {
+        console.error("❌ Error Supabase:", error.message);
+        quizIniciando = false; // Soltamos el freno si falla
+        return null; 
+    }
+
+    console.log("✅ Partida iniciada. ID:", data.id);
     sessionStorage.setItem('much_current_quiz_id', data.id);
+    // Nota: Mantenemos quizIniciando = true un momento más o lo dejamos así 
+    // porque el juego ya empezó y no queremos otro start.
     return data.id;
-  } catch (e) { return null; }
+
+  } catch (e) { 
+    console.error("Excepción al iniciar quiz:", e);
+    quizIniciando = false; // Soltamos el freno por si quieren reintentar
+    return null; 
+  }
 }
 
 async function endQuizInDB({ puntaje_total, num_correctas, num_preguntas }) {
@@ -154,12 +230,19 @@ async function endQuizInDB({ puntaje_total, num_correctas, num_preguntas }) {
     const quizId = sessionStorage.getItem('much_current_quiz_id');
     if (!quizId) return;
 
-    await supabase.from('quizzes').update({
-        puntaje_total,
-        num_correctas,
-        num_preguntas,
-        finished_at: new Date().toISOString()
+    console.log(`🏁 Guardando final. Puntos: ${puntaje_total}`);
+    
+    const { error } = await supabase.from('quizzes').update({
+        puntaje_total: puntaje_total, // Aquí viajan tus 50 puntos
+        num_correctas: num_correctas, // Aquí viajan tus 5 correctas
+        num_preguntas: num_preguntas,
+        finished_at: getMexicoTime(), // <--- HORA MÉXICO AQUÍ
+        estatus: 'finalizado'
       }).eq('id', quizId);
+      
+    if(error) console.error("Error al finalizar:", error.message);
+    else console.log("✅ Resultados guardados con éxito.");
+
   } catch (e) { console.warn(e); }
 }
 
@@ -303,9 +386,12 @@ class UIManager{
     if(s.idx>=QUESTIONS.length){
       const allCorrect = s.correct===QUESTIONS.length;
 
-      // Guardamos el puntaje en la BD (1 correcta = 10 puntos)
+      // --- CORRECCIÓN FINAL: GUARDAR PUNTAJE ---
+      // Calculamos 10 puntos por cada acierto
+      const puntajeFinal = s.correct * 10;
+      
       endQuizInDB({
-        puntaje_total: s.correct * 10,
+        puntaje_total: puntajeFinal, 
         num_correctas: s.correct,
         num_preguntas: QUESTIONS.length
       });

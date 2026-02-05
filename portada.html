@@ -100,7 +100,18 @@
     box-shadow:0 18px 44px rgba(155,92,249,.35),0 6px 16px rgba(0,0,0,.25);
     min-width:200px; min-height:48px;
   }
+  .btn.disabled {
+    background: #555;
+    pointer-events: none;
+    cursor: not-allowed;
+  }
   .tip{margin-top:clamp(10px, 3vw, 14px); font-size:clamp(12px, 3.4vw, 14px); opacity:.9}
+  #mensajeAgotado {
+    display: none;
+    color: #ffc107;
+    font-weight: bold;
+    margin-top: 1rem;
+  }
 </style>
 </head>
 <body>
@@ -113,8 +124,67 @@
     <h1>MUCH</h1>
     <p class="sub">Aprende y gana premios!! 🎁</p>
 
-    <a class="btn" href="index.html?from=portada">🚀 Jugar ahora</a>
+    <a id="playBtn" class="btn" href="index.html?from=portada">🚀 Jugar ahora</a>
+    <div id="mensajeAgotado"></div>
     <p class="tip">Tip: Lee cuidadosamente las preguntas 🦖</p>
   </main>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function verificarDisponibilidad() {
+      // 1. Definir el rango de hoy
+      const hoy = new Date();
+      const inicioDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0).toISOString();
+      const finDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString();
+
+      // 2. Consulta a Supabase
+      try {
+        const { count, error } = await supabase
+          .from('Ganadores')
+          .select('*', { count: 'exact', head: true })
+          .neq('folio', null)
+          .gte('created_at', inicioDelDia)
+          .lte('created_at', finDelDia);
+
+        if (error) {
+          console.error('Error al verificar boletos:', error.message);
+          return;
+        }
+
+        // 3. Acción en el UI
+        const playBtn = document.getElementById('playBtn');
+        const mensajeAgotado = document.getElementById('mensajeAgotado');
+
+        if (count >= 10) {
+          if (playBtn) {
+            playBtn.style.display = 'none';
+          }
+          if (mensajeAgotado) {
+            mensajeAgotado.style.display = 'block';
+            mensajeAgotado.textContent = 'Gracias por participar, pero los boletos de hoy están agotados, vuelve mañana.';
+          }
+          console.warn('Boletos diarios agotados. Límite: 10.');
+        } else {
+          console.log(`Boletos disponibles: ${10 - count}`);
+           if (playBtn) {
+            playBtn.style.display = 'block';
+          }
+          if (mensajeAgotado) {
+            mensajeAgotado.style.display = 'none';
+          }
+        }
+
+      } catch (e) {
+        console.error('Excepción al contar boletos:', e);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', verificarDisponibilidad);
+  </script>
 </body>
 </html>
