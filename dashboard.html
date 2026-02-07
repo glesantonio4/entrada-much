@@ -1,64 +1,265 @@
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8" />
   <title>MUCH • Dashboard Spinosaurio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
-      --bg:#020617; --bg-card:#0b1120; --border-soft:#1f2937;
-      --accent:#06b6d4; --accent-soft:#0ea5e9; --accent-strong:#d946ef;
-      --text-main:#e5e7eb; --text-muted:#9ca3af;
-      --danger:#f97373; --success:#22c55e; --warning:#facc15;
+      --bg: #020617;
+      --bg-card: #0b1120;
+      --border-soft: #1f2937;
+      --accent: #06b6d4;
+      --accent-soft: #0ea5e9;
+      --accent-strong: #d946ef;
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #f97373;
+      --success: #22c55e;
+      --warning: #facc15;
     }
-    *{ box-sizing:border-box; }
-    html,body{ margin:0; padding:0; height:100%; font-family:system-ui,-apple-system,sans-serif; background: var(--bg); color:var(--text-main); }
-    body{ display:flex; flex-direction:column; background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); }
 
-    .page{ max-width:1200px; margin:0 auto; padding:20px 16px 32px; width: 100%; }
-    header{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
-    
-    .brand{ display:flex; align-items:center; gap:12px; }
-    .brand-logo{ width:44px; height:44px; border-radius:12px; background:#0f172a; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:20px; color:var(--accent-strong); border:1px solid rgba(255,255,255,0.1); }
-    .brand-txt h1{ font-size:22px; margin:0; font-weight: 800; letter-spacing: -0.5px; }
-    .brand-txt p{ margin:4px 0 0; font-size:13px; color:var(--text-muted); }
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(circle at top, #1e293b 0%, #020617 100%);
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+      width: 100%;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 20px;
+      color: var(--accent-strong);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .brand-txt h1 {
+      font-size: 22px;
+      margin: 0;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .brand-txt p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
 
     /* Filtros */
-    .filters-card{ background:rgba(30,41,59,0.5); border-radius:16px; padding:16px; border:1px solid var(--border-soft); display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; margin-bottom:24px; }
-    .filter-group{ display:flex; flex-direction:column; gap:6px; flex:1; min-width: 150px; }
-    .filter-group label{ font-size:12px; font-weight:700; color:var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
-    .filter-group select{ background:#0f172a; border-radius:8px; border:1px solid var(--border-soft); padding:10px 12px; color:#fff; font-size:14px; outline:none; }
-    
-    .btn-refresh{ border-radius:8px; border:0; padding:10px 20px; background:var(--accent-soft); color:#fff; font-weight:700; cursor:pointer; transition: transform 0.2s; }
-    .btn-refresh:hover { background: var(--accent); transform: translateY(-2px); }
+    .filters-card {
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border-soft);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: flex-end;
+      margin-bottom: 24px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .filter-group label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-group select {
+      background: #0f172a;
+      border-radius: 8px;
+      border: 1px solid var(--border-soft);
+      padding: 10px 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .btn-refresh {
+      border-radius: 8px;
+      border: 0;
+      padding: 10px 20px;
+      background: var(--accent-soft);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .btn-refresh:hover {
+      background: var(--accent);
+      transform: translateY(-2px);
+    }
 
     /* Stats */
-    .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-bottom:24px; }
-    .stat-card{ background:#0f172a; border-radius:16px; padding:20px; border:1px solid var(--border-soft); display:flex; justify-content:space-between; align-items:start; }
-    .stat-label{ font-size:13px; color:var(--text-muted); margin-bottom:8px; }
-    .stat-value{ font-size:28px; font-weight:800; color:white; }
-    .stat-icon { font-size: 24px; opacity: 0.5; }
-    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: #0f172a;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid var(--border-soft);
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: white;
+    }
+
+    .stat-icon {
+      font-size: 24px;
+      opacity: 0.5;
+    }
+
     /* Color especial para canjeados */
-    .text-green { color: var(--success); }
+    .text-green {
+      color: var(--success);
+    }
 
     /* Tabla */
-    .table-wrapper{ background:#0f172a; border-radius:16px; border:1px solid var(--border-soft); overflow:hidden; }
-    .table-scroll{ overflow-x:auto; }
-    table{ width:100%; border-collapse:collapse; font-size:14px; text-align:left; }
-    th{ background:#1e293b; padding:14px 16px; font-size:11px; text-transform:uppercase; color:var(--text-muted); font-weight:700; }
-    td{ padding:14px 16px; border-bottom:1px solid var(--border-soft); vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    
-    .pill-sala { background: rgba(14, 165, 233, 0.15); color: var(--accent-soft); padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; border: 1px solid rgba(14, 165, 233, 0.3); }
-    .score-high { color: #fff; font-weight: bold; }
+    .table-wrapper {
+      background: #0f172a;
+      border-radius: 16px;
+      border: 1px solid var(--border-soft);
+      overflow: hidden;
+    }
+
+    .table-scroll {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    th {
+      background: #1e293b;
+      padding: 14px 16px;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-soft);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .pill-sala {
+      background: rgba(14, 165, 233, 0.15);
+      color: var(--accent-soft);
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(14, 165, 233, 0.3);
+    }
+
+    .score-high {
+      color: #fff;
+      font-weight: bold;
+    }
 
     /* Estatus Badges */
-    .badge-status { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
-    .st-activo { background: rgba(250, 204, 21, 0.15); color: var(--warning); border: 1px solid rgba(250, 204, 21, 0.3); }
-    .st-canjeado { background: rgba(34, 197, 94, 0.15); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.3); }
+    .badge-status {
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .st-activo {
+      background: rgba(250, 204, 21, 0.15);
+      color: var(--warning);
+      border: 1px solid rgba(250, 204, 21, 0.3);
+    }
+
+    .st-canjeado {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
   </style>
 </head>
+
 <body>
   <div class="page">
     <header>
@@ -98,19 +299,35 @@
 
     <section class="stats-grid">
       <article class="stat-card">
-        <div><div class="stat-label">Partidas Totales</div><div id="stat-quizzes" class="stat-value">0</div></div>
+        <div>
+          <div class="stat-label">Partidas Totales</div>
+          <div id="stat-quizzes" class="stat-value">0</div>
+        </div>
         <div class="stat-icon">🎮</div>
       </article>
-      
+
       <article class="stat-card">
-        <div><div class="stat-label">Boletos Canjeados</div><div id="stat-canjeados" class="stat-value text-green">0</div></div>
+        <div>
+          <div class="stat-label">Boletos Canjeados</div>
+          <div id="stat-canjeados" class="stat-value text-green">0</div>
+        </div>
         <div class="stat-icon">🎟️</div>
       </article>
 
       <article class="stat-card">
-        <div><div class="stat-label">Total Boletos Generados</div><div id="stat-total-boletos" class="stat-value">0</div></div>
+        <div>
+          <div class="stat-label">Total Boletos Generados</div>
+          <div id="stat-total-boletos" class="stat-value">0</div>
+        </div>
         <div class="stat-icon">🎫</div>
       </article>
+    </section>
+
+    <h2
+      style="font-size: 16px; margin: 0 0 16px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px;">
+      📊 Estadísticas por Sala</h2>
+    <section id="room-stats-grid" class="stats-grid">
+      <!-- Se llenará dinámicamente -->
     </section>
 
     <section class="table-wrapper">
@@ -121,11 +338,14 @@
               <th>Fecha / Hora</th>
               <th>Sala</th>
               <th>Puntaje</th>
-              <th>Estatus</th> <th>ID Sistema</th>
+              <th>Estatus</th>
+              <th>ID Sistema</th>
             </tr>
           </thead>
           <tbody id="tbody">
-            <tr><td colspan="5" style="text-align:center; padding:20px; color:#666;">Cargando datos...</td></tr>
+            <tr>
+              <td colspan="5" style="text-align:center; padding:20px; color:#666;">Cargando datos...</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -145,7 +365,7 @@
     const selFecha = document.getElementById('f-fecha');
     const tbody = document.getElementById('tbody');
     const status = document.getElementById('status');
-    
+
     const statQuizzes = document.getElementById('stat-quizzes');
     const statCanjeados = document.getElementById('stat-canjeados');
     const statTotalBoletos = document.getElementById('stat-total-boletos');
@@ -160,7 +380,7 @@
           .from('Ganadores')
           .select('*', { count: 'exact', head: true });
 
-        if(error) throw error;
+        if (error) throw error;
         statTotalBoletos.textContent = count;
       } catch (e) {
         console.error("Error cargando métricas globales:", e);
@@ -173,10 +393,13 @@
       try {
         const { data, error } = await supabase.from('salas').select('*');
         if (error) throw error;
-        
+
         selSala.innerHTML = '<option value="">Todas las salas</option>';
         data.forEach(sala => {
           mapaSalas[sala.id] = sala.nombre;
+          if (sala.slug) mapaSalas[sala.slug] = sala.nombre;
+          if (sala.nombre) mapaSalas[sala.nombre] = sala.nombre;
+
           const opt = document.createElement('option');
           opt.value = sala.id;
           opt.textContent = sala.nombre;
@@ -188,6 +411,9 @@
     }
 
     // 2. CARGAR JUGADAS
+    const roomGrid = document.getElementById('room-stats-grid');
+    const SALA_ENTRADA_ID = '6d66b495-cf43-42c1-b7f8-627ceb6fe33d';
+
     async function cargarJugadas() {
       status.textContent = "Actualizando...";
       try {
@@ -195,17 +421,11 @@
           .from('quizzes')
           .select('*, salas(nombre)')
           .order('started_at', { ascending: false })
-          .limit(100); // Límite aumentado para ver más historia
-
-        // Filtro por Sala
-        if (selSala.value) {
-          query = query.eq('sala_id', selSala.value);
-        }
+          .limit(200);
 
         // Filtro por Estatus
         if (selEstatus.value) {
           if (selEstatus.value === 'activo') {
-            // Buscamos 'activo' o null (los viejos que no tenían campo son activos)
             query = query.or('estatus.eq.activo,estatus.is.null');
           } else {
             query = query.eq('estatus', selEstatus.value);
@@ -221,42 +441,101 @@
         }
 
         const { data, error } = await query;
-        
+
         if (error) {
           tbody.innerHTML = `<tr><td colspan="5" style="color:salmon; text-align:center">Error de conexión</td></tr>`;
           console.error(error);
           return;
         }
 
-        // --- CÁLCULO DE MÉTRICAS ---
-        // (Calculamos sobre los datos traídos, si quieres métricas totales necesitas otra consulta, 
-        // pero para dashboard rápido esto sirve)
-        let totalCanjeados = 0;
+        // --- CÁLCULO DE MÉTRICAS GRUPALES (Por Sala) ---
+        // 1. Inicializamos con TODAS las salas conocidas para que se muestren aunque tengan 0
+        const statsPorSala = {};
+        Object.keys(mapaSalas).forEach(id => {
+          statsPorSala[id] = { nombre: mapaSalas[id], total: 0, canjeados: 0 };
+        });
 
+        // 2. Acumulamos datos de los registros obtenidos
         data.forEach(q => {
-            if (q.estatus === 'canjeado') totalCanjeados++;
+          const sId = q.sala_id;
+          if (sId) {
+            // Buscamos el ID real de la sala si lo que tenemos es un slug o nombre
+            let key = sId;
+            // Si el ID en el registro no es un UUID pero coincide con un slug o nombre en nuestro mapa
+            // Intentamos encontrar el ID de la sala que tiene ese nombre o slug
+            if (!statsPorSala[sId]) {
+              // Si no existe la llave exacta, buscamos si coincide con algún nombre o slug ya mapeado
+              const foundName = mapaSalas[sId];
+              if (foundName) {
+                // Buscamos la sala que tenga ese nombre para agruparlo ahí
+                const realId = Object.keys(mapaSalas).find(k => mapaSalas[k] === foundName && k.length > 20); // asumiendo UUID es largo
+                if (realId) key = realId;
+              }
+            }
+
+            if (statsPorSala[key]) {
+              statsPorSala[key].total++;
+              if (q.estatus === 'canjeado') statsPorSala[key].canjeados++;
+            }
+          }
+        });
+
+        // Renderizar tarjetas de salas
+        roomGrid.innerHTML = '';
+        Object.keys(statsPorSala).forEach(id => {
+          const s = statsPorSala[id];
+          const roomCard = document.createElement('article');
+          roomCard.className = 'stat-card';
+          roomCard.style.flexDirection = 'column';
+          roomCard.style.gap = '12px';
+
+          roomCard.innerHTML = `
+            <div>
+              <div class="pill-sala" style="margin-bottom:8px; display:inline-block">${s.nombre}</div>
+              <div class="stat-grid" style="display:flex; gap:20px;">
+                <div>
+                  <div class="stat-label" style="font-size:11px">Partidas</div>
+                  <div class="stat-value" style="font-size:20px">${s.total}</div>
+                </div>
+                <div>
+                  <div class="stat-label" style="font-size:11px">Canjeados</div>
+                  <div class="stat-value text-green" style="font-size:20px">${s.canjeados}</div>
+                </div>
+              </div>
+            </div>
+          `;
+          roomGrid.appendChild(roomCard);
+        });
+
+        // --- CÁLCULO DE MÉTRICAS GENERALES ---
+        let totalCanjeados = 0;
+        data.forEach(q => {
+          if (q.estatus === 'canjeado') totalCanjeados++;
         });
 
         statQuizzes.textContent = data.length;
         statCanjeados.textContent = totalCanjeados;
 
-        if (data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px">No se encontraron registros.</td></tr>`;
-          status.textContent = "Listo (Sin datos)";
+        // --- FILTRADO LOCAL PARA LA TABLA ---
+        let tablaData = data;
+        if (selSala.value) {
+          tablaData = data.filter(q => q.sala_id === selSala.value);
+        }
+
+        if (tablaData.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px">No se encontraron registros para esta selección.</td></tr>`;
+          status.textContent = "Listo";
           return;
         }
 
         // --- RENDERIZAR TABLA ---
         let html = '';
-        data.forEach(jugada => {
+        tablaData.forEach(jugada => {
           const fecha = new Date(jugada.started_at).toLocaleString();
-          const nombreSala = jugada.salas?.nombre || mapaSalas[jugada.sala_id] || 'Sala Desconocida';
+          const sIdInput = jugada.sala_id;
+          const nombreSala = jugada.salas?.nombre || mapaSalas[sIdInput] ||
+            (sIdInput === SALA_ENTRADA_ID || sIdInput === 'entrada' ? 'Entrada MUCH' : 'Sala Desconocida');
 
-          if (nombreSala === 'Sala Desconocida') {
-            console.log("Fallo en ID: " + jugada.id + " | Sala ID buscado: " + jugada.sala_id);
-          }
-          
-          // Definir apariencia del estatus
           let estatusHTML = `<span class="badge-status st-activo">ACTIVO</span>`;
           if (jugada.estatus === 'canjeado') {
             estatusHTML = `<span class="badge-status st-canjeado">CANJEADO</span>`;
@@ -268,7 +547,7 @@
               <td><span class="pill-sala">${nombreSala}</span></td>
               <td class="score-high">${jugada.puntaje_total} pts</td>
               <td>${estatusHTML}</td>
-              <td style="color:#666; font-size:11px; font-family:monospace">${jugada.id.slice(0,8)}...</td>
+              <td style="color:#666; font-size:11px; font-family:monospace">${jugada.id.slice(0, 8)}...</td>
             </tr>
           `;
         });
@@ -297,4 +576,5 @@
 
   </script>
 </body>
+
 </html>
