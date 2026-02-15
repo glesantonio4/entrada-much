@@ -3,12 +3,12 @@ const params = new URLSearchParams(location.search);
 const SALA = params.get('sala') || 'Exploración';
 const NUM_QUESTIONS = 6;
 // Función para mezclar arrays
-const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+const shuffle = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
 
 // Placeholder: Se llenará desde el JSON
 let QUESTIONS = [];
 // 🔒 BANDERA DE SEGURIDAD (Evita dobles registros al dar clic rápido)
-let quizIniciando = false; 
+let quizIniciando = false;
 
 /* ================================================================= */
 /* ==== SUPABASE: CONEXIÓN Y LÓGICA DE BASE DE DATOS =========== */
@@ -34,7 +34,7 @@ async function initSupabase() {
 function getMexicoTime() {
   const ahora = new Date();
   // Restamos el desfase (en minutos) para ajustar a hora local manualmente
-  const offsetMexico = ahora.getTimezoneOffset() * 60000; 
+  const offsetMexico = ahora.getTimezoneOffset() * 60000;
   const localTime = new Date(ahora.getTime() - offsetMexico);
   return localTime.toISOString();
 }
@@ -42,10 +42,10 @@ function getMexicoTime() {
 // ------------------------------------------------------------
 // 1. CARGAR PREGUNTAS DESDE ARCHIVO JSON
 // ------------------------------------------------------------
-async function loadPreguntas(){
-  try{
+async function loadPreguntas() {
+  try {
     const resp = await fetch('preguntas.json', { cache: 'no-store' });
-    if(!resp.ok) throw new Error('No se pudo cargar preguntas.json: ' + resp.status);
+    if (!resp.ok) throw new Error('No se pudo cargar preguntas.json: ' + resp.status);
     let bank = await resp.json();
 
     if (!Array.isArray(bank)) {
@@ -58,7 +58,7 @@ async function loadPreguntas(){
       }
     }
 
-    if(!Array.isArray(bank) || bank.length===0)
+    if (!Array.isArray(bank) || bank.length === 0)
       throw new Error('preguntas.json no contiene un array de preguntas');
 
     const normalize = (it) => {
@@ -97,7 +97,7 @@ async function loadPreguntas(){
 
     const bySala = bank.filter(q =>
       !q?.sala && !q?.sala_codigo ? true :
-      (q.sala === SALA || q.sala_codigo === SALA)
+        (q.sala === SALA || q.sala_codigo === SALA)
     );
 
     const pool = bySala.length ? bySala : bank;
@@ -106,7 +106,7 @@ async function loadPreguntas(){
     QUESTIONS = shuffle(normalized).slice(0, NUM_QUESTIONS);
     console.log('[loadPreguntas] JSON Cargado. Total preguntas:', QUESTIONS.length);
     return QUESTIONS;
-  }catch(err){
+  } catch (err) {
     console.error(err);
     alert('Error al cargar preguntas.json.\n' + err.message);
     throw err;
@@ -118,36 +118,32 @@ async function loadPreguntas(){
 // ------------------------------------------------------------
 async function ensureParticipanteId() {
   await initSupabase();
-  
-  // 1. Verificamos si ya tenemos el ID numérico guardado
-  const existingId = sessionStorage.getItem("usuario_id");
-  if (existingId) {
-    console.log("ID recuperado de sesión:", existingId);
-    return existingId;
-  }
 
-  // 2. Si no hay ID, creamos uno nuevo
+  // 1. Verificamos si ya tenemos el ID guardado
+  const existingId = sessionStorage.getItem("usuario_id");
+  if (existingId) return existingId;
+
+  const randomSuffix = Math.floor(Math.random() * 999999);
   try {
     console.log("Creando jugador temporal en Ganadores...");
     const { data, error } = await supabase
-      .from('Ganadores') 
+      .from('Ganadores')
       .insert([
         {
-          nombre: 'Jugador Anónimo', 
-          correo: 'anonimo@quiz.temp',
+          nombre: 'Visitante Entrada',
+          correo: `visitante.${randomSuffix}@much.mx`,
           telefono: '0000000000',
-          folio: 'TEMP-' + Math.floor(Math.random() * 100000), 
-          valido_desde: getMexicoTime() // <--- HORA MÉXICO AQUÍ
+          folio: 'V-' + randomSuffix,
+          valido_desde: getMexicoTime()
         }
       ])
       .select('id')
       .single();
 
     if (error) {
-      console.error("Error creando jugador:", error.message);
-      // Fallback de emergencia
-      const fallback = await supabase.from('Ganadores').select('id').limit(1);
-      return fallback.data?.[0]?.id || null;
+      console.warn("No se pudo crear jugador nuevo, buscando fallback...", error.message);
+      const { data: fallback } = await supabase.from('Ganadores').select('id').limit(1);
+      return fallback?.[0]?.id || null;
     }
 
     console.log("Jugador temporal creado con ID:", data.id);
@@ -171,19 +167,19 @@ async function startQuizInDB() {
     // 1. Verificar si ya existe un juego activo en sesión (Recarga de página)
     const juegoActivo = sessionStorage.getItem('much_current_quiz_id');
     if (juegoActivo) {
-        console.log("Juego recuperado de sesión:", juegoActivo);
-        // Importante: No ponemos quizIniciando = false aquí porque ya tenemos ID
-        return juegoActivo; 
+      console.log("Juego recuperado de sesión:", juegoActivo);
+      // Importante: No ponemos quizIniciando = false aquí porque ya tenemos ID
+      return juegoActivo;
     }
-    
+
     // Obtenemos IDs necesarios
-    const sala_id = SALA_ENTRADA_ID; 
+    const sala_id = SALA_ENTRADA_ID;
     const participante_id = await ensureParticipanteId();
 
     if (!participante_id) {
-        console.error("❌ No se pudo obtener ID de participante.");
-        quizIniciando = false; // Soltamos el freno si falla
-        return null;
+      console.error("❌ No se pudo obtener ID de participante.");
+      quizIniciando = false; // Soltamos el freno si falla
+      return null;
     }
 
     // 2. Preparamos datos con HORA EXACTA
@@ -200,15 +196,15 @@ async function startQuizInDB() {
     console.log("Guardando partida nueva...");
 
     const { data, error } = await supabase
-        .from('quizzes')
-        .insert(payload)
-        .select('id')
-        .single();
-    
+      .from('quizzes')
+      .insert(payload)
+      .select('id')
+      .single();
+
     if (error) {
-        console.error("❌ Error Supabase:", error.message);
-        quizIniciando = false; // Soltamos el freno si falla
-        return null; 
+      console.error("❌ Error Supabase:", error.message);
+      quizIniciando = false; // Soltamos el freno si falla
+      return null;
     }
 
     console.log("✅ Partida iniciada. ID:", data.id);
@@ -217,10 +213,10 @@ async function startQuizInDB() {
     // porque el juego ya empezó y no queremos otro start.
     return data.id;
 
-  } catch (e) { 
+  } catch (e) {
     console.error("Excepción al iniciar quiz:", e);
     quizIniciando = false; // Soltamos el freno por si quieren reintentar
-    return null; 
+    return null;
   }
 }
 
@@ -231,99 +227,99 @@ async function endQuizInDB({ puntaje_total, num_correctas, num_preguntas }) {
     if (!quizId) return;
 
     console.log(`🏁 Guardando final. Puntos: ${puntaje_total}`);
-    
+
     const { error } = await supabase.from('quizzes').update({
-        puntaje_total: puntaje_total, // Aquí viajan tus 50 puntos
-        num_correctas: num_correctas, // Aquí viajan tus 5 correctas
-        num_preguntas: num_preguntas,
-        finished_at: getMexicoTime(), // <--- HORA MÉXICO AQUÍ
-        estatus: 'finalizado'
-      }).eq('id', quizId);
-      
-    if(error) console.error("Error al finalizar:", error.message);
+      puntaje_total: puntaje_total, // Aquí viajan tus 50 puntos
+      num_correctas: num_correctas, // Aquí viajan tus 5 correctas
+      num_preguntas: num_preguntas,
+      finished_at: getMexicoTime(), // <--- HORA MÉXICO AQUÍ
+      estatus: 'finalizado'
+    }).eq('id', quizId);
+
+    if (error) console.error("Error al finalizar:", error.message);
     else console.log("✅ Resultados guardados con éxito.");
 
   } catch (e) { console.warn(e); }
 }
 
 /* =================== Clases UI =================== */
-class SoundFX{
-  constructor(toggleEl){ this.toggleEl = toggleEl; this.ctx = null; }
-  beep(freq=880, dur=0.15, type='sine', vol=0.08){
+class SoundFX {
+  constructor(toggleEl) { this.toggleEl = toggleEl; this.ctx = null; }
+  beep(freq = 880, dur = 0.15, type = 'sine', vol = 0.08) {
     if (this.toggleEl && !this.toggleEl.checked) return;
-    this.ctx = this.ctx || new (window.AudioContext||window.webkitAudioContext)();
-    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
-    o.type=type; o.frequency.value=freq; g.gain.value=vol;
+    this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.value = freq; g.gain.value = vol;
     o.connect(g); g.connect(this.ctx.destination); o.start();
-    setTimeout(()=>o.stop(), dur*1000);
+    setTimeout(() => o.stop(), dur * 1000);
   }
-  correct(){ this.beep(880,.12,'sine',.08); setTimeout(()=>this.beep(1320,.12,'sine',.07),130); }
-  wrong(){ this.beep(200,.18,'sawtooth',.07); }
+  correct() { this.beep(880, .12, 'sine', .08); setTimeout(() => this.beep(1320, .12, 'sine', .07), 130); }
+  wrong() { this.beep(200, .18, 'sawtooth', .07); }
 }
 
-class Confetti{
-  constructor(canvas){
+class Confetti {
+  constructor(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d');
-    this.pieces=[]; this.resize(); addEventListener('resize', ()=>this.resize());
+    this.pieces = []; this.resize(); addEventListener('resize', () => this.resize());
     this.loop();
   }
-  resize(){ this.canvas.width = innerWidth; this.canvas.height = innerHeight; }
-  launch(n=120){
-    for(let i=0;i<n;i++){
-      this.pieces.push({ x: Math.random()*this.canvas.width, y:-10, r:4+Math.random()*4, vy:2+Math.random()*3, vx:-2+Math.random()*4, rot:Math.random()*Math.PI*2 });
+  resize() { this.canvas.width = innerWidth; this.canvas.height = innerHeight; }
+  launch(n = 120) {
+    for (let i = 0; i < n; i++) {
+      this.pieces.push({ x: Math.random() * this.canvas.width, y: -10, r: 4 + Math.random() * 4, vy: 2 + Math.random() * 3, vx: -2 + Math.random() * 4, rot: Math.random() * Math.PI * 2 });
     }
   }
-  loop(){
-    requestAnimationFrame(()=>this.loop());
-    const {ctx,canvas}=this; ctx.clearRect(0,0,canvas.width,canvas.height);
-    this.pieces.forEach(p=>{
-      p.x+=p.vx; p.y+=p.vy; p.rot+=0.05;
-      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-      const palette = ['#06b6d4','#0891b2','#d946ef','#a21caf','#22d3ee','#f0abfc'];
-      ctx.fillStyle = palette[(p.r|0) % palette.length];
-      ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2); ctx.restore();
+  loop() {
+    requestAnimationFrame(() => this.loop());
+    const { ctx, canvas } = this; ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += 0.05;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      const palette = ['#06b6d4', '#0891b2', '#d946ef', '#a21caf', '#22d3ee', '#f0abfc'];
+      ctx.fillStyle = palette[(p.r | 0) % palette.length];
+      ctx.fillRect(-p.r, -p.r, p.r * 2, p.r * 2); ctx.restore();
     });
-    this.pieces = this.pieces.filter(p=>p.y<canvas.height+20);
+    this.pieces = this.pieces.filter(p => p.y < canvas.height + 20);
   }
 }
 
-class PrizeManager{
-  constructor(){
+class PrizeManager {
+  constructor() {
     this.PRIZES = [
-      { key:'museo',      title:'MUCH · Museo',      label:'Entrada al Museo MUCH',  lugar:'Museo Chiapas (MUCH)', emoji:'🏛️' },
-      { key:'planetario', title:'MUCH · Planetario', label:'Entrada al Planetario MUCH',lugar:'Planetario MUCH',      emoji:'🔭' },
-      { key:'general',    title:'MUCH · Visita General', label:'Visita General (Museo + Planetario)', lugar:'Museo y Planetario', emoji:'🌟' },
+      { key: 'museo', title: 'MUCH · Museo', label: 'Entrada al Museo MUCH', lugar: 'Museo Chiapas (MUCH)', emoji: '🏛️' },
+      { key: 'planetario', title: 'MUCH · Planetario', label: 'Entrada al Planetario MUCH', lugar: 'Planetario MUCH', emoji: '🔭' },
+      { key: 'general', title: 'MUCH · Visita General', label: 'Visita General (Museo + Planetario)', lugar: 'Museo y Planetario', emoji: '🌟' },
     ];
   }
-  random(){ return this.PRIZES[Math.floor(Math.random()*this.PRIZES.length)]; }
+  random() { return this.PRIZES[Math.floor(Math.random() * this.PRIZES.length)]; }
 }
 
-class UIManager{
-  constructor({elements, sound, confetti, prizeMgr}){
+class UIManager {
+  constructor({ elements, sound, confetti, prizeMgr }) {
     this.e = elements; this.sound = sound; this.confetti = confetti; this.prizeMgr = prizeMgr;
-    this.state = { idx:0, selected:null, points:0, correct:0, locked:false, answers:[] };
+    this.state = { idx: 0, selected: null, points: 0, correct: 0, locked: false, answers: [] };
     this.currentPrize = null;
     this.cheatingDetected = false;
 
-    if(this.e.pillSala) this.e.pillSala.textContent = `Sala: ${SALA}`;
-    if(this.e.qTotal) this.e.qTotal.textContent = QUESTIONS.length.toString();
+    if (this.e.pillSala) this.e.pillSala.textContent = `Sala: ${SALA}`;
+    if (this.e.qTotal) this.e.qTotal.textContent = QUESTIONS.length.toString();
     this.bind();
     this.render();
     this.clock();
     this.startFocusDetection();
   }
 
-  startFocusDetection(){
+  startFocusDetection() {
     window.addEventListener('blur', this.handleFocusLoss.bind(this));
   }
 
-  handleFocusLoss(){
+  handleFocusLoss() {
     if (this.state.locked || this.cheatingDetected || this.state.idx >= QUESTIONS.length) return;
     this.cheatingDetected = true;
     this.state.locked = true;
 
-    if(this.e.status) this.e.status.textContent = '🛑 ¡ATENCIÓN! No cambies de pestaña.';
-    if(this.e.hint) this.e.hint.textContent = 'La ronda ha sido invalidada por salir del juego.';
+    if (this.e.status) this.e.status.textContent = '🛑 ¡ATENCIÓN! No cambies de pestaña.';
+    if (this.e.hint) this.e.hint.textContent = 'La ronda ha sido invalidada por salir del juego.';
 
     [...this.e.options.querySelectorAll('.option-btn')].forEach(btn => {
       btn.disabled = true;
@@ -336,38 +332,38 @@ class UIManager{
     this.sound.wrong();
   }
 
-  bind(){
-    this.e.nextBtn.addEventListener('click', ()=> this.next());
-    this.e.openTicketBtn.addEventListener('click', ()=> this.redirectToRegistration());
-    this.e.playAgainBtn1.addEventListener('click', ()=> location.reload());
-    this.e.playAgainBtn2.addEventListener('click', ()=> location.reload());
+  bind() {
+    this.e.nextBtn.addEventListener('click', () => this.next());
+    this.e.openTicketBtn.addEventListener('click', () => this.redirectToRegistration());
+    this.e.playAgainBtn1.addEventListener('click', () => location.reload());
+    this.e.playAgainBtn2.addEventListener('click', () => location.reload());
   }
 
-  clock(){
-    const tick=()=>{
-      const t=new Date(), hh=String(t.getHours()).padStart(2,'0'), mm=String(t.getMinutes()).padStart(2,'0');
-      if(this.e.timer) this.e.timer.textContent = `⏰ ${hh}:${mm}`;
+  clock() {
+    const tick = () => {
+      const t = new Date(), hh = String(t.getHours()).padStart(2, '0'), mm = String(t.getMinutes()).padStart(2, '0');
+      if (this.e.timer) this.e.timer.textContent = `⏰ ${hh}:${mm}`;
       setTimeout(tick, 10_000);
     }; tick();
   }
 
-  redirectToRegistration(){
-    if(!this.currentPrize) return;
+  redirectToRegistration() {
+    if (!this.currentPrize) return;
     const prizeData = {
       title: this.currentPrize.title,
       label: this.currentPrize.label,
       lugar: this.currentPrize.lugar,
-      folio: 'MUCH-' + Math.random().toString(36).substring(2,8).toUpperCase(),
-      date: new Intl.DateTimeFormat('es-MX',{dateStyle:'long'}).format(new Date()),
+      folio: 'MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      date: new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date()),
       emoji: this.currentPrize.emoji
     };
     localStorage.setItem('much_quiz_prize', JSON.stringify(prizeData));
-    window.location.href = 'registro.html'; 
+    window.location.href = 'registro.html';
   }
 
-  render(){
-    const s=this.state, {e}=this;
-    const pct = Math.min(100, (s.idx/QUESTIONS.length*100));
+  render() {
+    const s = this.state, { e } = this;
+    const pct = Math.min(100, (s.idx / QUESTIONS.length * 100));
     e.bar.style.width = pct + '%';
 
     if (this.cheatingDetected) {
@@ -383,20 +379,20 @@ class UIManager{
       return;
     }
 
-    if(s.idx>=QUESTIONS.length){
-      const allCorrect = s.correct===QUESTIONS.length;
+    if (s.idx >= QUESTIONS.length) {
+      const allCorrect = s.correct === QUESTIONS.length;
 
       // --- CORRECCIÓN FINAL: GUARDAR PUNTAJE ---
       // Calculamos 10 puntos por cada acierto
       const puntajeFinal = s.correct * 10;
-      
+
       endQuizInDB({
-        puntaje_total: puntajeFinal, 
+        puntaje_total: puntajeFinal,
         num_correctas: s.correct,
         num_preguntas: QUESTIONS.length
       });
 
-      if(allCorrect){
+      if (allCorrect) {
         const prize = this.prizeMgr.random();
         this.currentPrize = prize;
         this.redirectToRegistration();
@@ -405,67 +401,67 @@ class UIManager{
         e.quizView.classList.add('d-none');
         e.finalView.classList.remove('d-none');
         e.finalTitle.textContent = 'Buen intento 👀';
-        e.finalMsg.textContent    = 'Sigue explorando el museo.';
+        e.finalMsg.textContent = 'Sigue explorando el museo.';
         e.giftRow.classList.add('d-none');
         e.retryRow.classList.remove('d-none');
         e.finalPoints.textContent = s.points.toString();
-        e.finalCorrect.textContent= s.correct.toString();
-        e.finalTotal.textContent  = QUESTIONS.length.toString();
+        e.finalCorrect.textContent = s.correct.toString();
+        e.finalTotal.textContent = QUESTIONS.length.toString();
         return;
       }
     }
 
     const q = QUESTIONS[s.idx];
-    if(e.qIndex) e.qIndex.textContent = (s.idx+1).toString();
-    if(e.qText) e.qText.textContent  = q.text;
-    if(e.qDesc) e.qDesc.textContent  = q.desc || '';
-    if(e.status) e.status.textContent = '';
-    if(e.options) e.options.innerHTML  = '';
-    s.selected=null; s.locked=false;
+    if (e.qIndex) e.qIndex.textContent = (s.idx + 1).toString();
+    if (e.qText) e.qText.textContent = q.text;
+    if (e.qDesc) e.qDesc.textContent = q.desc || '';
+    if (e.status) e.status.textContent = '';
+    if (e.options) e.options.innerHTML = '';
+    s.selected = null; s.locked = false;
 
-    q.options.forEach((label,i)=>{
-      const col=document.createElement('div'); col.className='col-12 col-md-6';
-      const btn=document.createElement('button'); btn.type='button'; btn.className='option-btn';
+    q.options.forEach((label, i) => {
+      const col = document.createElement('div'); col.className = 'col-12 col-md-6';
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'option-btn';
       btn.setAttribute('data-index', i);
       btn.innerHTML = `<span class="emoji">🔹</span><span>${label}</span>`;
-      btn.addEventListener('click', ()=> this.choose(i));
+      btn.addEventListener('click', () => this.choose(i));
       col.appendChild(btn); e.options.appendChild(col);
     });
 
-    e.nextBtn.textContent = s.idx===QUESTIONS.length-1 ? 'Finalizar 🎉' : 'Siguiente ➡️';
-    if(e.pointsEl) e.pointsEl.textContent = s.points.toString();
-    if(e.hint) e.hint.textContent = 'Tip: solo puedes elegir una respuesta';
+    e.nextBtn.textContent = s.idx === QUESTIONS.length - 1 ? 'Finalizar 🎉' : 'Siguiente ➡️';
+    if (e.pointsEl) e.pointsEl.textContent = s.points.toString();
+    if (e.hint) e.hint.textContent = 'Tip: solo puedes elegir una respuesta';
   }
 
-  choose(i){
-    const s=this.state, {e}=this;
-    if(s.locked) return;
-    if(this.cheatingDetected) return;
+  choose(i) {
+    const s = this.state, { e } = this;
+    if (s.locked) return;
+    if (this.cheatingDetected) return;
 
-    s.locked=true; s.selected=i;
-    const q=QUESTIONS[s.idx], correctIdx=q.correctIndex;
-    [...e.options.querySelectorAll('.option-btn')].forEach((btn,idx)=>{
-      btn.disabled=true; btn.classList.remove('option-btn--correct','option-btn--incorrect');
-      if(idx===correctIdx) btn.classList.add('option-btn--correct');
-      if(idx===i && i!==correctIdx) btn.classList.add('option-btn--incorrect');
+    s.locked = true; s.selected = i;
+    const q = QUESTIONS[s.idx], correctIdx = q.correctIndex;
+    [...e.options.querySelectorAll('.option-btn')].forEach((btn, idx) => {
+      btn.disabled = true; btn.classList.remove('option-btn--correct', 'option-btn--incorrect');
+      if (idx === correctIdx) btn.classList.add('option-btn--correct');
+      if (idx === i && i !== correctIdx) btn.classList.add('option-btn--incorrect');
     });
-    if(i===correctIdx){
-      if(e.status) e.status.textContent='✅ ¡Correcto!';
-      s.points+=q.points; s.correct+=1;
+    if (i === correctIdx) {
+      if (e.status) e.status.textContent = '✅ ¡Correcto!';
+      s.points += q.points; s.correct += 1;
       this.sound.correct(); this.confetti.launch(40);
     } else {
-      if(e.status) e.status.textContent='❌ ¡Incorrecto!';
+      if (e.status) e.status.textContent = '❌ ¡Incorrecto!';
       this.sound.wrong();
     }
-    s.answers.push({ qIndex:s.idx, question:q.text, choice:q.options[i], correct:i===correctIdx });
+    s.answers.push({ qIndex: s.idx, question: q.text, choice: q.options[i], correct: i === correctIdx });
   }
 
-  next(){
-    const s=this.state, {e}=this;
+  next() {
+    const s = this.state, { e } = this;
     if (this.cheatingDetected) { location.reload(); return; }
-    if(s.selected===null){ if(e.status) e.status.textContent='⚠️ Selecciona una respuesta.'; return; }
-    e.nextBtn.disabled = true; setTimeout(()=>{ e.nextBtn.disabled=false; }, 180);
-    s.idx+=1; this.render();
+    if (s.selected === null) { if (e.status) e.status.textContent = '⚠️ Selecciona una respuesta.'; return; }
+    e.nextBtn.disabled = true; setTimeout(() => { e.nextBtn.disabled = false; }, 180);
+    s.idx += 1; this.render();
   }
 }
 
@@ -499,29 +495,29 @@ const elements = {
   logoEmoji: document.getElementById('logoEmoji'),
 };
 
-const sound    = new SoundFX(elements.soundToggle || null);
+const sound = new SoundFX(elements.soundToggle || null);
 const confetti = new Confetti(document.getElementById('confetti'));
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  const welcome  = document.getElementById('welcome');
-  const quizShell= document.getElementById('quizShell');
+document.addEventListener('DOMContentLoaded', () => {
+  const welcome = document.getElementById('welcome');
+  const quizShell = document.getElementById('quizShell');
   const startBtn = document.getElementById('startBtn');
   const prizeMgr = new PrizeManager();
 
-  const start = async ()=>{
-    try{
+  const start = async () => {
+    try {
       await loadPreguntas(); // Carga el JSON local
       await startQuizInDB(); // Inicia sesión en BD
       if (welcome) welcome.classList.add('hidden');
       if (quizShell) quizShell.classList.remove('hidden');
       new UIManager({ elements, sound, confetti, prizeMgr });
-    }catch(err){
+    } catch (err) {
       console.error('No se pudo iniciar el quiz:', err);
     }
   };
 
   if (startBtn && welcome) {
-    startBtn.addEventListener('click', (e)=>{ e.preventDefault(); start(); });
+    startBtn.addEventListener('click', (e) => { e.preventDefault(); start(); });
   } else {
     start();
   }
