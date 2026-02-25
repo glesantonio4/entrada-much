@@ -3,12 +3,12 @@ const params = new URLSearchParams(location.search);
 const SALA = params.get('sala') || 'Exploración';
 const NUM_QUESTIONS = 6;
 // Función para mezclar arrays
-const shuffle = a => a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+const shuffle = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
 
 // Placeholder: Se llenará desde el JSON
 let QUESTIONS = [];
 // 🔒 BANDERA DE SEGURIDAD (Evita dobles registros al dar clic rápido)
-let quizIniciando = false; 
+let quizIniciando = false;
 
 /* ================================================================= */
 /* ==== SUPABASE: CONEXIÓN Y LÓGICA DE BASE DE DATOS =========== */
@@ -17,7 +17,7 @@ let quizIniciando = false;
 const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
 
-// 🔒 ID EXACTO DE LA SALA "ENTRADA MUCH" 
+// 🔒 ID EXACTO DE LA SALA "DESARROLLO SUSTENTABLE"
 const SALA_ENTRADA_ID = '6d66b495-cf43-42c1-b7f8-627ceb6fe33d';
 
 let supabase = null;
@@ -33,8 +33,7 @@ async function initSupabase() {
 // ⏰ FUNCIÓN CRÍTICA: Obtener hora exacta de México
 function getMexicoTime() {
   const ahora = new Date();
-  // Restamos el desfase (en minutos) para ajustar a hora local manualmente
-  const offsetMexico = ahora.getTimezoneOffset() * 60000; 
+  const offsetMexico = ahora.getTimezoneOffset() * 60000;
   const localTime = new Date(ahora.getTime() - offsetMexico);
   return localTime.toISOString();
 }
@@ -42,10 +41,10 @@ function getMexicoTime() {
 // ------------------------------------------------------------
 // 1. CARGAR PREGUNTAS DESDE ARCHIVO JSON
 // ------------------------------------------------------------
-async function loadPreguntas(){
-  try{
+async function loadPreguntas() {
+  try {
     const resp = await fetch('preguntas.json', { cache: 'no-store' });
-    if(!resp.ok) throw new Error('No se pudo cargar preguntas.json: ' + resp.status);
+    if (!resp.ok) throw new Error('No se pudo cargar preguntas.json: ' + resp.status);
     let bank = await resp.json();
 
     if (!Array.isArray(bank)) {
@@ -58,7 +57,7 @@ async function loadPreguntas(){
       }
     }
 
-    if(!Array.isArray(bank) || bank.length===0)
+    if (!Array.isArray(bank) || bank.length === 0)
       throw new Error('preguntas.json no contiene un array de preguntas');
 
     const normalize = (it) => {
@@ -97,7 +96,7 @@ async function loadPreguntas(){
 
     const bySala = bank.filter(q =>
       !q?.sala && !q?.sala_codigo ? true :
-      (q.sala === SALA || q.sala_codigo === SALA)
+        (q.sala === SALA || q.sala_codigo === SALA)
     );
 
     const pool = bySala.length ? bySala : bank;
@@ -106,7 +105,7 @@ async function loadPreguntas(){
     QUESTIONS = shuffle(normalized).slice(0, NUM_QUESTIONS);
     console.log('[loadPreguntas] JSON Cargado. Total preguntas:', QUESTIONS.length);
     return QUESTIONS;
-  }catch(err){
+  } catch (err) {
     console.error(err);
     alert('Error al cargar preguntas.json.\n' + err.message);
     throw err;
@@ -114,216 +113,235 @@ async function loadPreguntas(){
 }
 
 // ------------------------------------------------------------
-// 2. GESTIÓN DE JUGADORES Y PUNTAJES
+// 2. GESTIÓN DE PARTIDAS (DB TRACKING)
 // ------------------------------------------------------------
-async function ensureParticipanteId() {
-  await initSupabase();
-  
-  // 1. Verificamos si ya tenemos el ID numérico guardado
-  const existingId = sessionStorage.getItem("usuario_id");
-  if (existingId) {
-    console.log("ID recuperado de sesión:", existingId);
-    return existingId;
-  }
-
-  // 2. Si no hay ID, creamos uno nuevo
-  try {
-    console.log("Creando jugador temporal en Ganadores...");
-    const { data, error } = await supabase
-      .from('Ganadores') 
-      .insert([
-        {
-          nombre: 'Jugador Anónimo', 
-          correo: 'anonimo@quiz.temp',
-          telefono: '0000000000',
-          folio: 'TEMP-' + Math.floor(Math.random() * 100000), 
-          valido_desde: getMexicoTime() // <--- HORA MÉXICO AQUÍ
-        }
-      ])
-      .select('id')
-      .single();
-
-    if (error) {
-      console.error("Error creando jugador:", error.message);
-      // Fallback de emergencia
-      const fallback = await supabase.from('Ganadores').select('id').limit(1);
-      return fallback.data?.[0]?.id || null;
-    }
-
-    console.log("Jugador temporal creado con ID:", data.id);
-    sessionStorage.setItem("usuario_id", data.id);
-    return data.id;
-
-  } catch (e) {
-    console.error("Error fatal en ensureParticipanteId:", e);
-    return null;
-  }
-}
 
 async function startQuizInDB() {
-  // 🔒 FRENO DE MANO: Si ya se está iniciando, NO hagas nada más.
   if (quizIniciando) return sessionStorage.getItem('much_current_quiz_id');
-  quizIniciando = true; // Activamos el bloqueo
+  quizIniciando = true;
 
   try {
     await initSupabase();
 
-    // 1. Verificar si ya existe un juego activo en sesión (Recarga de página)
-    const juegoActivo = sessionStorage.getItem('much_current_quiz_id');
-    if (juegoActivo) {
-        console.log("Juego recuperado de sesión:", juegoActivo);
-        // Importante: No ponemos quizIniciando = false aquí porque ya tenemos ID
-        return juegoActivo; 
-    }
-    
-    // Obtenemos IDs necesarios
-    const sala_id = SALA_ENTRADA_ID; 
-    const participante_id = await ensureParticipanteId();
+    // 🌟 LA CLAVE ESTÁ AQUÍ: Borramos el ID del intento anterior 
+    // para obligar a la base de datos a crear siempre una FILA NUEVA.
+    sessionStorage.removeItem('much_current_quiz_id');
+    sessionStorage.removeItem('much_quiz_final_data');
 
-    if (!participante_id) {
-        console.error("❌ No se pudo obtener ID de participante.");
-        quizIniciando = false; // Soltamos el freno si falla
-        return null;
-    }
+    // 🌟 SE ESTABLECE EL ID MANUALMENTE COMO SE PIDIÓ
+    const ID_JUGADOR = 365;
 
-    // 2. Preparamos datos con HORA EXACTA
+    // Insertar nuevo intento SIEMPRE
     const payload = {
-      sala_id: sala_id,
-      participante_id: participante_id,
-      started_at: getMexicoTime(), // <--- HORA MÉXICO AQUÍ
+      sala_id: SALA_ENTRADA_ID,
+      participante_id: ID_JUGADOR, // ✅ Ya no será NULL
+      started_at: getMexicoTime(),
       num_preguntas: NUM_QUESTIONS,
       puntaje_total: 0,
       num_correctas: 0,
       estatus: 'activo'
     };
 
-    console.log("Guardando partida nueva...");
-
+    console.log("Guardando nuevo intento en BD...");
     const { data, error } = await supabase
-        .from('quizzes')
-        .insert(payload)
-        .select('id')
-        .single();
-    
+      .from('quizzes')
+      .insert(payload)
+      .select('id')
+      .single();
+
     if (error) {
-        console.error("❌ Error Supabase:", error.message);
-        quizIniciando = false; // Soltamos el freno si falla
-        return null; 
+      console.error("❌ Error Supabase (Start):", error.message);
+      alert("Error al guardar en BD: " + error.message);
+      quizIniciando = false;
+      startQuizLocal();
+      return null;
     }
 
-    console.log("✅ Partida iniciada. ID:", data.id);
+    console.log("✅ Nuevo Intento guardado correctamente. ID:", data.id);
+
+    // Guardamos el nuevo ID en memoria
     sessionStorage.setItem('much_current_quiz_id', data.id);
-    // Nota: Mantenemos quizIniciando = true un momento más o lo dejamos así 
-    // porque el juego ya empezó y no queremos otro start.
+    localStorage.setItem('much_quiz_db_id', String(data.id));
+    localStorage.setItem('much_quiz_last_quiz_id', String(data.id));
+
     return data.id;
 
-  } catch (e) { 
+  } catch (e) {
     console.error("Excepción al iniciar quiz:", e);
-    quizIniciando = false; // Soltamos el freno por si quieren reintentar
-    return null; 
+    quizIniciando = false;
+    startQuizLocal();
+    return null;
   }
 }
 
 async function endQuizInDB({ puntaje_total, num_correctas, num_preguntas }) {
+  saveQuizResultLocal({ puntaje_total, num_correctas, num_preguntas });
+
   try {
     await initSupabase();
     const quizId = sessionStorage.getItem('much_current_quiz_id');
     if (!quizId) return;
 
-    console.log(`🏁 Guardando final. Puntos: ${puntaje_total}`);
-    
-    const { error } = await supabase.from('quizzes').update({
-        puntaje_total: puntaje_total, // Aquí viajan tus 50 puntos
-        num_correctas: num_correctas, // Aquí viajan tus 5 correctas
-        num_preguntas: num_preguntas,
-        finished_at: getMexicoTime(), // <--- HORA MÉXICO AQUÍ
-        estatus: 'finalizado'
-      }).eq('id', quizId);
-      
-    if(error) console.error("Error al finalizar:", error.message);
-    else console.log("✅ Resultados guardados con éxito.");
+    console.log(`🏁 Finalizando intento ${quizId}...`);
 
-  } catch (e) { console.warn(e); }
+    const { error } = await supabase.from('quizzes').update({
+      puntaje_total: puntaje_total,
+      num_correctas: num_correctas,
+      num_preguntas: num_preguntas,
+      finished_at: getMexicoTime(),
+      estatus: 'finalizado'
+    }).eq('id', quizId);
+
+    if (error) console.error("Error al finalizar (DB):", error.message);
+    else console.log("✅ Intento actualizado en BD al finalizar.");
+
+  } catch (e) { console.warn('Error endQuizInDB:', e); }
+}
+
+// ------------------------------------------------------------
+// 🌟 NUEVO: FUNCIÓN PARA COMPROBAR LÍMITE DE BOLETOS DIARIOS
+// ------------------------------------------------------------
+async function checkLimiteBoletos() {
+  try {
+    await initSupabase();
+
+    // Obtener el inicio y fin del día actual (hora de México)
+    const hoy = new Date();
+    const offsetMexico = hoy.getTimezoneOffset() * 60000;
+    const localTime = new Date(hoy.getTime() - offsetMexico);
+
+    // Formatear a YYYY-MM-DD
+    const fechaHoyStr = localTime.toISOString().split('T')[0];
+
+    // Construir rangos de búsqueda (desde las 00:00:00 hasta las 23:59:59)
+    const inicioDia = `${fechaHoyStr}T00:00:00.000Z`;
+    const finDia = `${fechaHoyStr}T23:59:59.999Z`;
+
+    // Buscar cuántos juegos con puntaje perfecto (todos los aciertos) hay hoy para esta sala
+    const { count, error } = await supabase
+      .from('quizzes')
+      .select('*', { count: 'exact', head: true })
+      .eq('sala_id', SALA_ENTRADA_ID)
+      .gte('finished_at', inicioDia) // Mayor o igual que el inicio del día
+      .lte('finished_at', finDia)    // Menor o igual que el fin del día
+      .eq('num_correctas', NUM_QUESTIONS); // Solo cuentan los que ganaron el boleto
+
+    if (error) {
+      console.error("Error al checar límite de boletos:", error);
+      return false; // Si hay error, permitimos que pase para no bloquear injustamente
+    }
+
+    console.log(`Boletos entregados hoy en esta sala: ${count}`);
+
+    // Si ya hay 3 o más, se alcanzó el límite
+    return count >= 3;
+
+  } catch (e) {
+    console.error("Excepción en checkLimiteBoletos:", e);
+    return false;
+  }
+}
+
+
+// Fallback Functions
+function startQuizLocal() {
+  if (sessionStorage.getItem('much_quiz_start')) return;
+  const startTime = getMexicoTime();
+  sessionStorage.setItem('much_quiz_start', startTime);
+}
+
+function saveQuizResultLocal(data) {
+  const startTime = sessionStorage.getItem('much_quiz_start') || getMexicoTime();
+  const quizData = { ...data, sala_id: SALA_ENTRADA_ID, started_at: startTime, finished_at: getMexicoTime() };
+
+  localStorage.setItem('much_quiz_final_data', JSON.stringify(quizData));
+
+  // Reforzamos el ID en localStorage
+  const dbId = sessionStorage.getItem('much_current_quiz_id');
+  if (dbId) {
+    localStorage.setItem('much_quiz_db_id', dbId);
+    localStorage.setItem('much_quiz_last_quiz_id', dbId);
+  }
 }
 
 /* =================== Clases UI =================== */
-class SoundFX{
-  constructor(toggleEl){ this.toggleEl = toggleEl; this.ctx = null; }
-  beep(freq=880, dur=0.15, type='sine', vol=0.08){
+class SoundFX {
+  constructor(toggleEl) { this.toggleEl = toggleEl; this.ctx = null; }
+  beep(freq = 880, dur = 0.15, type = 'sine', vol = 0.08) {
     if (this.toggleEl && !this.toggleEl.checked) return;
-    this.ctx = this.ctx || new (window.AudioContext||window.webkitAudioContext)();
-    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
-    o.type=type; o.frequency.value=freq; g.gain.value=vol;
+    this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.value = freq; g.gain.value = vol;
     o.connect(g); g.connect(this.ctx.destination); o.start();
-    setTimeout(()=>o.stop(), dur*1000);
+    setTimeout(() => o.stop(), dur * 1000);
   }
-  correct(){ this.beep(880,.12,'sine',.08); setTimeout(()=>this.beep(1320,.12,'sine',.07),130); }
-  wrong(){ this.beep(200,.18,'sawtooth',.07); }
+  correct() { this.beep(880, .12, 'sine', .08); setTimeout(() => this.beep(1320, .12, 'sine', .07), 130); }
+  wrong() { this.beep(200, .18, 'sawtooth', .07); }
 }
 
-class Confetti{
-  constructor(canvas){
+class Confetti {
+  constructor(canvas) {
     this.canvas = canvas; this.ctx = canvas.getContext('2d');
-    this.pieces=[]; this.resize(); addEventListener('resize', ()=>this.resize());
+    this.pieces = []; this.resize(); addEventListener('resize', () => this.resize());
     this.loop();
   }
-  resize(){ this.canvas.width = innerWidth; this.canvas.height = innerHeight; }
-  launch(n=120){
-    for(let i=0;i<n;i++){
-      this.pieces.push({ x: Math.random()*this.canvas.width, y:-10, r:4+Math.random()*4, vy:2+Math.random()*3, vx:-2+Math.random()*4, rot:Math.random()*Math.PI*2 });
+  resize() { this.canvas.width = innerWidth; this.canvas.height = innerHeight; }
+  launch(n = 120) {
+    for (let i = 0; i < n; i++) {
+      this.pieces.push({ x: Math.random() * this.canvas.width, y: -10, r: 4 + Math.random() * 4, vy: 2 + Math.random() * 3, vx: -2 + Math.random() * 4, rot: Math.random() * Math.PI * 2 });
     }
   }
-  loop(){
-    requestAnimationFrame(()=>this.loop());
-    const {ctx,canvas}=this; ctx.clearRect(0,0,canvas.width,canvas.height);
-    this.pieces.forEach(p=>{
-      p.x+=p.vx; p.y+=p.vy; p.rot+=0.05;
-      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-      const palette = ['#06b6d4','#0891b2','#d946ef','#a21caf','#22d3ee','#f0abfc'];
-      ctx.fillStyle = palette[(p.r|0) % palette.length];
-      ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2); ctx.restore();
+  loop() {
+    requestAnimationFrame(() => this.loop());
+    const { ctx, canvas } = this; ctx.clearRect(0, 0, canvas.width, canvas.height);
+    this.pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += 0.05;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      const palette = ['#06b6d4', '#0891b2', '#d946ef', '#a21caf', '#22d3ee', '#f0abfc'];
+      ctx.fillStyle = palette[(p.r | 0) % palette.length];
+      ctx.fillRect(-p.r, -p.r, p.r * 2, p.r * 2); ctx.restore();
     });
-    this.pieces = this.pieces.filter(p=>p.y<canvas.height+20);
+    this.pieces = this.pieces.filter(p => p.y < canvas.height + 20);
   }
 }
 
-class PrizeManager{
-  constructor(){
+class PrizeManager {
+  constructor() {
     this.PRIZES = [
-      { key:'museo',      title:'MUCH · Museo',      label:'Entrada al Museo MUCH',  lugar:'Museo Chiapas (MUCH)', emoji:'🏛️' },
-      { key:'planetario', title:'MUCH · Planetario', label:'Entrada al Planetario MUCH',lugar:'Planetario MUCH',      emoji:'🔭' },
-      { key:'general',    title:'MUCH · Visita General', label:'Visita General (Museo + Planetario)', lugar:'Museo y Planetario', emoji:'🌟' },
+      { key: 'museo', title: 'MUCH · Museo', label: 'Entrada al Museo MUCH', lugar: 'Museo Chiapas (MUCH)', emoji: '🏛️' },
+      { key: 'planetario', title: 'MUCH · Planetario', label: 'Entrada al Planetario MUCH', lugar: 'Planetario MUCH', emoji: '🔭' },
+      { key: 'general', title: 'MUCH · Visita General', label: 'Visita General (Museo + Planetario)', lugar: 'Museo y Planetario', emoji: '🌟' },
     ];
   }
-  random(){ return this.PRIZES[Math.floor(Math.random()*this.PRIZES.length)]; }
+  random() { return this.PRIZES[Math.floor(Math.random() * this.PRIZES.length)]; }
 }
 
-class UIManager{
-  constructor({elements, sound, confetti, prizeMgr}){
+class UIManager {
+  constructor({ elements, sound, confetti, prizeMgr }) {
     this.e = elements; this.sound = sound; this.confetti = confetti; this.prizeMgr = prizeMgr;
-    this.state = { idx:0, selected:null, points:0, correct:0, locked:false, answers:[] };
+    this.state = { idx: 0, selected: null, points: 0, correct: 0, locked: false, answers: [] };
     this.currentPrize = null;
     this.cheatingDetected = false;
 
-    if(this.e.pillSala) this.e.pillSala.textContent = `Sala: ${SALA}`;
-    if(this.e.qTotal) this.e.qTotal.textContent = QUESTIONS.length.toString();
+    if (this.e.pillSala) this.e.pillSala.textContent = `Sala: ${SALA}`;
+    if (this.e.qTotal) this.e.qTotal.textContent = QUESTIONS.length.toString();
     this.bind();
     this.render();
     this.clock();
     this.startFocusDetection();
   }
 
-  startFocusDetection(){
+  startFocusDetection() {
     window.addEventListener('blur', this.handleFocusLoss.bind(this));
   }
 
-  handleFocusLoss(){
+  handleFocusLoss() {
     if (this.state.locked || this.cheatingDetected || this.state.idx >= QUESTIONS.length) return;
     this.cheatingDetected = true;
     this.state.locked = true;
 
-    if(this.e.status) this.e.status.textContent = '🛑 ¡ATENCIÓN! No cambies de pestaña.';
-    if(this.e.hint) this.e.hint.textContent = 'La ronda ha sido invalidada por salir del juego.';
+    if (this.e.status) this.e.status.textContent = '🛑 ¡ATENCIÓN! No cambies de pestaña.';
+    if (this.e.hint) this.e.hint.textContent = 'La ronda ha sido invalidada por salir del juego.';
 
     [...this.e.options.querySelectorAll('.option-btn')].forEach(btn => {
       btn.disabled = true;
@@ -336,38 +354,38 @@ class UIManager{
     this.sound.wrong();
   }
 
-  bind(){
-    this.e.nextBtn.addEventListener('click', ()=> this.next());
-    this.e.openTicketBtn.addEventListener('click', ()=> this.redirectToRegistration());
-    this.e.playAgainBtn1.addEventListener('click', ()=> location.reload());
-    this.e.playAgainBtn2.addEventListener('click', ()=> location.reload());
+  bind() {
+    this.e.nextBtn.addEventListener('click', () => this.next());
+    this.e.openTicketBtn.addEventListener('click', () => this.redirectToRegistration());
+    this.e.playAgainBtn1.addEventListener('click', () => location.reload());
+    this.e.playAgainBtn2.addEventListener('click', () => location.reload());
   }
 
-  clock(){
-    const tick=()=>{
-      const t=new Date(), hh=String(t.getHours()).padStart(2,'0'), mm=String(t.getMinutes()).padStart(2,'0');
-      if(this.e.timer) this.e.timer.textContent = `⏰ ${hh}:${mm}`;
+  clock() {
+    const tick = () => {
+      const t = new Date(), hh = String(t.getHours()).padStart(2, '0'), mm = String(t.getMinutes()).padStart(2, '0');
+      if (this.e.timer) this.e.timer.textContent = `⏰ ${hh}:${mm}`;
       setTimeout(tick, 10_000);
     }; tick();
   }
 
-  redirectToRegistration(){
-    if(!this.currentPrize) return;
+  redirectToRegistration() {
+    if (!this.currentPrize) return;
     const prizeData = {
       title: this.currentPrize.title,
       label: this.currentPrize.label,
       lugar: this.currentPrize.lugar,
-      folio: 'MUCH-' + Math.random().toString(36).substring(2,8).toUpperCase(),
-      date: new Intl.DateTimeFormat('es-MX',{dateStyle:'long'}).format(new Date()),
+      folio: 'MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      date: new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date()),
       emoji: this.currentPrize.emoji
     };
     localStorage.setItem('much_quiz_prize', JSON.stringify(prizeData));
-    window.location.href = 'registro.html'; 
+    window.location.href = 'registro.html';
   }
 
-  render(){
-    const s=this.state, {e}=this;
-    const pct = Math.min(100, (s.idx/QUESTIONS.length*100));
+  async render() {
+    const s = this.state, { e } = this;
+    const pct = Math.min(100, (s.idx / QUESTIONS.length * 100));
     e.bar.style.width = pct + '%';
 
     if (this.cheatingDetected) {
@@ -383,89 +401,127 @@ class UIManager{
       return;
     }
 
-    if(s.idx>=QUESTIONS.length){
-      const allCorrect = s.correct===QUESTIONS.length;
+    if (s.idx >= QUESTIONS.length) {
+      // Mostrar estado de "cargando" mientras checamos la BD
+      e.quizView.classList.add('d-none');
+      e.finalView.classList.remove('d-none');
+      e.finalTitle.textContent = 'Verificando resultados...';
+      e.finalMsg.textContent = 'Por favor espera.';
+      e.giftRow.classList.add('d-none');
+      e.retryRow.classList.add('d-none');
 
-      // --- CORRECCIÓN FINAL: GUARDAR PUNTAJE ---
-      // Calculamos 10 puntos por cada acierto
+      const allCorrect = s.correct === QUESTIONS.length;
       const puntajeFinal = s.correct * 10;
-      
-      endQuizInDB({
-        puntaje_total: puntajeFinal, 
+
+      saveQuizResultLocal({
+        puntaje_total: puntajeFinal,
         num_correctas: s.correct,
         num_preguntas: QUESTIONS.length
       });
 
-      if(allCorrect){
-        const prize = this.prizeMgr.random();
-        this.currentPrize = prize;
-        this.redirectToRegistration();
+      e.finalPoints.textContent = s.points.toString();
+      e.finalCorrect.textContent = s.correct.toString();
+      e.finalTotal.textContent = QUESTIONS.length.toString();
+
+      if (allCorrect) {
+        // 🌟 EVALUAR LÍMITE ANTES DE SUBIR LOS RESULTADOS GANADORES
+        // Así el contador no cuenta la partida actual que aún no se marca como 'finalizada'
+        const limiteAlcanzado = await checkLimiteBoletos();
+
+        if (limiteAlcanzado) {
+          // Ya se entregaron 3 boletos hoy
+          endQuizInDB({
+            puntaje_total: puntajeFinal,
+            num_correctas: s.correct,
+            num_preguntas: QUESTIONS.length
+          });
+          e.finalTitle.textContent = '¡Felicidades, eres un experto! 🧠';
+          e.finalMsg.innerHTML = '<span style="color: #e6007a; font-weight: bold;">Lo sentimos, los boletos para esta sala se han agotado por hoy.</span><br>¡Vuelve a intentarlo mañana!';
+          e.retryRow.classList.remove('d-none');
+        } else {
+          // Aún hay boletos disponibles - Finalizamos y entregamos premio
+          endQuizInDB({
+            puntaje_total: puntajeFinal,
+            num_correctas: s.correct,
+            num_preguntas: QUESTIONS.length
+          });
+
+          const prize = this.prizeMgr.random();
+          this.currentPrize = prize;
+
+          e.finalTitle.textContent = '¡Felicidades!';
+          e.finalMsg.textContent = '¡Has ganado un boleto!';
+          e.giftRow.classList.remove('d-none');
+
+          // Pequeño margen y redirigir
+          setTimeout(() => this.redirectToRegistration(), 500);
+        }
         return;
       } else {
-        e.quizView.classList.add('d-none');
-        e.finalView.classList.remove('d-none');
+        // No ganó, finalizamos normal
+        endQuizInDB({
+          puntaje_total: puntajeFinal,
+          num_correctas: s.correct,
+          num_preguntas: QUESTIONS.length
+        });
         e.finalTitle.textContent = 'Buen intento 👀';
-        e.finalMsg.textContent    = 'Sigue explorando el museo.';
-        e.giftRow.classList.add('d-none');
+        e.finalMsg.textContent = 'Sigue explorando el museo.';
         e.retryRow.classList.remove('d-none');
-        e.finalPoints.textContent = s.points.toString();
-        e.finalCorrect.textContent= s.correct.toString();
-        e.finalTotal.textContent  = QUESTIONS.length.toString();
         return;
       }
     }
 
     const q = QUESTIONS[s.idx];
-    if(e.qIndex) e.qIndex.textContent = (s.idx+1).toString();
-    if(e.qText) e.qText.textContent  = q.text;
-    if(e.qDesc) e.qDesc.textContent  = q.desc || '';
-    if(e.status) e.status.textContent = '';
-    if(e.options) e.options.innerHTML  = '';
-    s.selected=null; s.locked=false;
+    if (e.qIndex) e.qIndex.textContent = (s.idx + 1).toString();
+    if (e.qText) e.qText.textContent = q.text;
+    if (e.qDesc) e.qDesc.textContent = q.desc || '';
+    if (e.status) e.status.textContent = '';
+    if (e.options) e.options.innerHTML = '';
+    s.selected = null; s.locked = false;
 
-    q.options.forEach((label,i)=>{
-      const col=document.createElement('div'); col.className='col-12 col-md-6';
-      const btn=document.createElement('button'); btn.type='button'; btn.className='option-btn';
+    q.options.forEach((label, i) => {
+      const col = document.createElement('div'); col.className = 'col-12';
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'option-btn';
       btn.setAttribute('data-index', i);
       btn.innerHTML = `<span class="emoji">🔹</span><span>${label}</span>`;
-      btn.addEventListener('click', ()=> this.choose(i));
+      btn.addEventListener('click', () => this.choose(i));
       col.appendChild(btn); e.options.appendChild(col);
     });
 
-    e.nextBtn.textContent = s.idx===QUESTIONS.length-1 ? 'Finalizar 🎉' : 'Siguiente ➡️';
-    if(e.pointsEl) e.pointsEl.textContent = s.points.toString();
-    if(e.hint) e.hint.textContent = 'Tip: solo puedes elegir una respuesta';
+    e.nextBtn.textContent = s.idx === QUESTIONS.length - 1 ? 'Finalizar 🎉' : 'Siguiente ➡️';
+    if (e.pointsEl) e.pointsEl.textContent = s.points.toString();
+    if (e.hint) e.hint.textContent = 'Tip: solo puedes elegir una respuesta';
   }
 
-  choose(i){
-    const s=this.state, {e}=this;
-    if(s.locked) return;
-    if(this.cheatingDetected) return;
+  choose(i) {
+    const s = this.state, { e } = this;
+    if (s.locked) return;
+    if (this.cheatingDetected) return;
 
-    s.locked=true; s.selected=i;
-    const q=QUESTIONS[s.idx], correctIdx=q.correctIndex;
-    [...e.options.querySelectorAll('.option-btn')].forEach((btn,idx)=>{
-      btn.disabled=true; btn.classList.remove('option-btn--correct','option-btn--incorrect');
-      if(idx===correctIdx) btn.classList.add('option-btn--correct');
-      if(idx===i && i!==correctIdx) btn.classList.add('option-btn--incorrect');
+    s.locked = true; s.selected = i;
+    const q = QUESTIONS[s.idx], correctIdx = q.correctIndex;
+    [...e.options.querySelectorAll('.option-btn')].forEach((btn, idx) => {
+      btn.disabled = true; btn.classList.remove('option-btn--correct', 'option-btn--incorrect');
+      if (idx === correctIdx) btn.classList.add('option-btn--correct');
+      if (idx === i && i !== correctIdx) btn.classList.add('option-btn--incorrect');
     });
-    if(i===correctIdx){
-      if(e.status) e.status.textContent='✅ ¡Correcto!';
-      s.points+=q.points; s.correct+=1;
+    if (i === correctIdx) {
+      if (e.status) e.status.textContent = '✅ ¡Correcto!';
+      s.points += q.points; s.correct += 1;
       this.sound.correct(); this.confetti.launch(40);
     } else {
-      if(e.status) e.status.textContent='❌ ¡Incorrecto!';
+      if (e.status) e.status.textContent = '❌ ¡Incorrecto!';
       this.sound.wrong();
     }
-    s.answers.push({ qIndex:s.idx, question:q.text, choice:q.options[i], correct:i===correctIdx });
+    s.answers.push({ qIndex: s.idx, question: q.text, choice: q.options[i], correct: i === correctIdx });
   }
 
-  next(){
-    const s=this.state, {e}=this;
+  next() {
+    const s = this.state, { e } = this;
     if (this.cheatingDetected) { location.reload(); return; }
-    if(s.selected===null){ if(e.status) e.status.textContent='⚠️ Selecciona una respuesta.'; return; }
-    e.nextBtn.disabled = true; setTimeout(()=>{ e.nextBtn.disabled=false; }, 180);
-    s.idx+=1; this.render();
+    if (s.selected === null) { if (e.status) e.status.textContent = '⚠️ Selecciona una respuesta.'; return; }
+    e.nextBtn.disabled = true; setTimeout(() => { e.nextBtn.disabled = false; }, 180);
+    s.idx += 1; this.render();
   }
 }
 
@@ -499,29 +555,29 @@ const elements = {
   logoEmoji: document.getElementById('logoEmoji'),
 };
 
-const sound    = new SoundFX(elements.soundToggle || null);
+const sound = new SoundFX(elements.soundToggle || null);
 const confetti = new Confetti(document.getElementById('confetti'));
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  const welcome  = document.getElementById('welcome');
-  const quizShell= document.getElementById('quizShell');
+document.addEventListener('DOMContentLoaded', () => {
+  const welcome = document.getElementById('welcome');
+  const quizShell = document.getElementById('quizShell');
   const startBtn = document.getElementById('startBtn');
   const prizeMgr = new PrizeManager();
 
-  const start = async ()=>{
-    try{
-      await loadPreguntas(); // Carga el JSON local
-      await startQuizInDB(); // Inicia sesión en BD
+  const start = async () => {
+    try {
+      await loadPreguntas();
+      startQuizInDB();
       if (welcome) welcome.classList.add('hidden');
       if (quizShell) quizShell.classList.remove('hidden');
       new UIManager({ elements, sound, confetti, prizeMgr });
-    }catch(err){
+    } catch (err) {
       console.error('No se pudo iniciar el quiz:', err);
     }
   };
 
   if (startBtn && welcome) {
-    startBtn.addEventListener('click', (e)=>{ e.preventDefault(); start(); });
+    startBtn.addEventListener('click', (e) => { e.preventDefault(); start(); });
   } else {
     start();
   }
