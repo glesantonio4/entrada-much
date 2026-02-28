@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Registro para obtener tu premio</title>
+  <link rel="stylesheet" href="styles.css" />
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -32,8 +33,6 @@
       padding: 30px;
       background: #181a20;
       color: #fff;
-      font-family: sans-serif;
-      margin: 0;
     }
 
     .registro-container {
@@ -43,8 +42,7 @@
       padding: 24px 22px 26px;
       width: 100%;
       max-width: 520px;
-      border: 1px solid var(--gris-600);
-      box-sizing: border-box;
+      border: 1px solid var(--gris-300);
     }
 
     .logo-wrap {
@@ -59,6 +57,7 @@
       height: auto;
       display: block;
       image-rendering: -webkit-optimize-contrast;
+      -ms-interpolation-mode: bicubic;
       filter: drop-shadow(0 2px 8px rgba(0, 0, 0, .35));
     }
 
@@ -90,12 +89,11 @@
       width: 100%;
       padding: 12px;
       border-radius: 10px;
-      border: 1px solid var(--gris-600);
+      border: 1px solid var(--gris-300);
       font-size: 16px;
       background: #0f1218;
       color: #fff;
       outline: none;
-      box-sizing: border-box;
     }
 
     .form-group input:focus {
@@ -138,10 +136,9 @@
       transform: scale(.995);
     }
 
-    .submit-btn:disabled {
+    .submit-btn[disabled] {
       opacity: .6;
       cursor: not-allowed;
-      background: #555;
     }
 
     @media (max-width: 360px) {
@@ -158,80 +155,113 @@
       }
     }
 
+    /* === MODAL STYLES === */
     .modal-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
-      padding: 20px;
-      box-sizing: border-box;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
     }
 
-    .modal-content {
-      background: var(--card-bg);
-      padding: 24px;
-      border-radius: var(--card-br);
-      border: 1px solid var(--gris-600);
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: #1f2937;
+      border: 1px solid var(--turquesa);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 420px;
       width: 100%;
-      max-width: 480px;
       text-align: center;
-      color: var(--gris-200);
-      box-shadow: 0 5px 20px rgba(0, 0, 0, .3);
+      transform: translateY(20px);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 20px 50px rgba(0, 201, 183, 0.15);
     }
 
-    .modal-content p {
-      margin: 0 0 20px;
+    .modal-overlay.active .modal-card {
+      transform: translateY(0);
+    }
+
+    .modal-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 0.5rem;
+    }
+
+    .modal-text {
+      color: #d1d5db;
+      margin-bottom: 1.5rem;
       font-size: 1.1rem;
       line-height: 1.5;
     }
 
-    #modalCloseBtn {
-      width: auto;
-      padding: 10px 30px;
+    .btn-modal {
+      background: var(--turquesa);
+      color: #0f172a;
+      font-weight: 800;
+      padding: 12px 24px;
+      border-radius: 99px;
+      border: none;
+      font-size: 1.1rem;
+      width: 100%;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .btn-modal:active {
+      transform: scale(0.96);
     }
   </style>
 </head>
 
 <body>
-  <div id="infoModal" class="modal-overlay">
-    <div class="modal-content">
-      <p>Presenta tu credencial de estudiante para validar tu entrada. Si no eres estudiante, presenta tu credencial de
-        elector en taquilla para validar tu boleto.</p>
-      <button id="modalCloseBtn" class="submit-btn">Entendido</button>
-    </div>
-  </div>
   <div class="registro-container">
     <div class="logo-wrap">
-      <img src="./logo-much.png" alt="MUCH · Museo de Ciencia y Tecnología" class="brand-logo"
-        onerror="this.style.display='none'">
+      <img src="./logo-much.png" alt="MUCH · Museo de Ciencia y Tecnología" class="brand-logo">
     </div>
 
     <h2>Regístrate para reclamar tu premio 🐆</h2>
-    <p class="lead">Gracias por Visitar el MUCH</p>
+    <p class="lead">Gracias por visitar el MUCH</p>
 
     <form id="registroForm" autocomplete="off" novalidate>
       <div class="form-group">
         <label for="nombre">Nombre completo</label>
-        <input type="text" id="nombre" name="nombre" required placeholder="Ej. Celi Glescanni" />
-        <div class="hint">Usa al menos dos palabras.</div>
+        <input type="text" id="nombre" name="nombre" required inputmode="text" minlength="6" maxlength="80"
+          placeholder="Ej. Celi Glescanni" title="Escribe tu nombre completo (mínimo 2 palabras)." />
+        <div class="hint">Usa al menos dos palabras. Se permiten acentos y espacios.</div>
         <div class="error-msg" id="err-nombre"></div>
       </div>
 
       <div class="form-group">
         <label for="correo">Correo electrónico</label>
-        <input type="email" id="correo" name="correo" required placeholder="tucorreo@dominio.com" />
+        <input type="email" id="correo" name="correo" required inputmode="email" maxlength="120"
+          placeholder="tucorreo@dominio.com" autocomplete="email" />
+        <div class="hint">Debe ser un correo válido (evita temporales).</div>
         <div class="error-msg" id="err-correo"></div>
       </div>
 
       <div class="form-group">
         <label for="telefono">Número de teléfono</label>
-        <input type="tel" id="telefono" name="telefono" required placeholder="Agrega 10 dígitos" maxlength="10" />
+        <input type="tel" id="telefono" name="telefono" required inputmode="numeric" pattern="[0-9]{10}" maxlength="10"
+          placeholder="Agrega 10 dígitos" title="Solo números, de 10 dígitos." />
         <div class="hint">Solo 10 dígitos.</div>
         <div class="error-msg" id="err-telefono"></div>
       </div>
@@ -240,25 +270,41 @@
     </form>
   </div>
 
+  <div id="welcomeModal" class="modal-overlay">
+    <div class="modal-card">
+      <span class="modal-icon">🎉</span>
+      <h3 class="modal-title">¡Gracias por participar!</h3>
+      <p class="modal-text">Para hacer válido el boleto agrega tu <strong>nombre completo</strong>.</p>
+      <button id="closeModalBtn" class="btn-modal">Continuar</button>
+    </div>
+  </div>
+
   <script>
-    // 1. CONFIGURACIÓN SUPABASE
+    // ---------- Supabase Client (BASE MUCH) ----------
     const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+    const SUPABASE_ANON_KEY =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // 2. UTILIDADES DE TIEMPO (Estandarizado con app.js)
-    function getMexicoTime(extraMs = 0) {
-      const ahora = new Date(Date.now() + extraMs);
-      const offsetMexico = ahora.getTimezoneOffset() * 60000;
-      const localTime = new Date(ahora.getTime() - offsetMexico);
-      return localTime.toISOString();
+    let supabaseClient = null;
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      console.log('[REGISTRO] Supabase client inicializado');
+    } else {
+      console.error('[REGISTRO] Supabase JS no disponible:', window.supabase);
     }
 
-    // 3. VALIDACIONES VISUALES
-    const $ = (id) => document.getElementById(id);
+    const qs = new URLSearchParams(location.search);
+    const salaSlug = qs.get('sala') || 'energia';
+
+    // 🛡️ BLINDAJE NIVEL DIOS: Leer de la URL o sacarlo de la memoria PERMANENTE
+    const lugarDesdeURL = qs.get('lugar') || localStorage.getItem('much_lugar_seguro');
+
+    // ---------- Validadores ----------
+    const reNombre = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ \t]+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'.-]+){1,}$/;
     const reEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
     const rePhone = /^\d{10}$/;
+    const disposableDomains = ["10minutemail.com", "guerrillamail.com", "tempmail.com", "yopmail.com", "mailinator.com", "trashmail.com", "sharklasers.com"];
+    const $ = (id) => document.getElementById(id);
 
     function setError(inputEl, errEl, msg) {
       inputEl.classList.add('is-invalid');
@@ -271,157 +317,212 @@
       errEl.style.display = 'none';
     }
 
-    // 3. LÓGICA DE ENVÍO
-    document.getElementById('registroForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
+    function validateNombre(raw) {
+      const nombre = raw.trim().replace(/\s+/g, ' ');
+      if (nombre.length < 6) return "Es muy corto. Escribe tu nombre completo.";
+      if (!reNombre.test(nombre)) return "Escribe al menos nombre y apellido (solo letras y espacios).";
+      return null;
+    }
+    function validateEmail(raw) {
+      const email = raw.trim().toLowerCase();
+      if (!reEmail.test(email)) return "Correo no válido.";
+      const domain = email.split('@')[1] || '';
+      if (disposableDomains.includes(domain)) return "Este dominio de correo no es permitido.";
+      return null;
+    }
+    function validatePhone(raw) {
+      const tel = raw.trim();
+      if (!rePhone.test(tel)) return "El teléfono debe tener 10 dígitos.";
+      return null;
+    }
 
-      const btn = $('submitBtn');
-      const nombreInput = $('nombre');
-      const correoInput = $('correo');
-      const telefonoInput = $('telefono');
-
-      // --- Validaciones Rápidas ---
-      let isValid = true;
-
-      // Nombre
-      if (nombreInput.value.trim().length < 5) {
-        setError(nombreInput, $('err-nombre'), "Escribe tu nombre completo.");
-        isValid = false;
-      } else clearError(nombreInput, $('err-nombre'));
-
-      // Correo
-      if (!reEmail.test(correoInput.value.trim())) {
-        setError(correoInput, $('err-correo'), "Correo no válido.");
-        isValid = false;
-      } else clearError(correoInput, $('err-correo'));
-
-      // Teléfono
-      if (!rePhone.test(telefonoInput.value.trim())) {
-        setError(telefonoInput, $('err-telefono'), "Debe tener 10 dígitos.");
-        isValid = false;
-      } else clearError(telefonoInput, $('err-telefono'));
-
-      if (!isValid) return;
-
-      // --- PROCESO SUPABASE ---
-      btn.disabled = true;
-      btn.textContent = "Generando boleto...";
-
-      const nombre = nombreInput.value.trim();
-      const correo = correoInput.value.trim();
-      const telefono = telefonoInput.value.trim();
-
-      // --- 🛡️ NUEVO: VERIFICACIÓN DE LÍMITE DIARIO ---
-      try {
-        const hoy = new Date();
-        const offsetMexico = hoy.getTimezoneOffset() * 60000;
-        const localTime = new Date(hoy.getTime() - offsetMexico);
-        const fechaHoyStr = localTime.toISOString().split('T')[0];
-        const inicioDia = `${fechaHoyStr}T00:00:00.000Z`;
-        const finDia = `${fechaHoyStr}T23:59:59.999Z`;
-
-        const { count, error: countError } = await sb
-          .from('Ganadores')
-          .select('*', { count: 'exact', head: true })
-          .gte('valido_desde', inicioDia)
-          .lte('valido_desde', finDia);
-
-        if (countError) console.warn("Error al verificar límite:", countError);
-
-        if (count >= 3) {
-          alert("Lo sentimos, se ha alcanzado el límite de 3 boletos para el día de hoy. ¡Vuelve mañana!");
-          btn.disabled = false;
-          btn.textContent = "Obtener mi Boleto";
-          return;
-        }
-      } catch (e) {
-        console.error("Error en verificación de límite:", e);
-      }
-      // --- FIN VERIFICACIÓN LÍMITE ---
-
-      // --- Lógica de Asignación Aleatoria ---
-      const tiposDeEntrada = ['Planetario', 'Museo', 'General'];
-      const tipoEntrada = tiposDeEntrada[Math.floor(Math.random() * tiposDeEntrada.length)];
-
-      let folio, titulo, ubicacion, tipoEntradaDb;
-      const numeroAleatorio = Math.floor(Math.random() * 100000);
-
-      switch (tipoEntrada) {
-        case 'Planetario':
-          folio = `PLAN-${numeroAleatorio}`;
-          titulo = 'Entrada Planetario';
-          ubicacion = 'Planetario Tuxtla "Jaime Sabines Gutiérrez", Calz. de los Hombres Ilustres S/N, Tuxtla Gutiérrez';
-          tipoEntradaDb = 'planetario';
-          break;
-        case 'Museo':
-          folio = `MUCH-${numeroAleatorio}`;
-          titulo = 'Entrada MUCH';
-          ubicacion = 'Museo Chiapas de Ciencia y Tecnología, Calzada Cerro Hueco S/N, Tuxtla Gutiérrez';
-          tipoEntradaDb = 'museo';
-          break;
-        case 'General':
-          folio = `GRAL-${numeroAleatorio}`;
-          titulo = 'Entrada General (MUCH y Planetario)';
-          ubicacion = '<b>MUSEO CHIAPAS:</b> Museo Chiapas de Ciencia y Tecnología, Calzada Cerro Hueco S/N, Tuxtla Gutiérrez<br><br><b>PLANETARIO TUXTLA:</b> Planetario Tuxtla "Jaime Sabines Gutiérrez", Calz. de los Hombres Ilustres S/N, Tuxtla Gutiérrez';
-          tipoEntradaDb = 'general';
-          break;
+    // ---------- Guardar en Supabase ----------
+    async function guardarEnSupabase(nombre, correo, telefono, prizeData) {
+      if (!supabaseClient) {
+        console.warn('[REGISTRO] supabaseClient es null');
+        return;
       }
 
       try {
-        const { error } = await sb
+        // 1. Insertar el GANADOR con datos completos
+        const folioNew = prizeData.folio || ('MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+
+        const validUntil = new Date();
+        validUntil.setDate(validUntil.getDate() + 30);
+
+        // 🌟 NUEVO: ELEGIR QUÉ UBICACIÓN GUARDAR 🌟
+        const ubicacionFinal = lugarDesdeURL || prizeData.lugar || 'Museo Chiapas';
+
+        const { data: winnerData, error: winnerError } = await supabaseClient
           .from('Ganadores')
-          .insert([{
-            folio: folio,
-            nombre: nombre,
-            correo: correo,
-            telefono: telefono,
+          .insert({
+            nombre,
+            correo,
+            telefono,
+            folio: folioNew,
+            valido_desde: new Date().toISOString(),
+            valido_hasta: validUntil.toISOString(),
             estatus: 'activo',
-            valido_desde: getMexicoTime(),
-            valido_hasta: getMexicoTime(7 * 24 * 60 * 60 * 1000)
-          }]);
+            tipo_entrada: prizeData.label || 'Premio',
+            ubicacion: ubicacionFinal
+          })
+          .select('id')
+          .single();
 
-        if (error) throw error;
+        if (winnerError) throw new Error('Error guardando Ganador: ' + winnerError.message);
 
-        // B. Éxito y Redirección
-        btn.style.background = "#10b981"; // Verde éxito
-        btn.textContent = "¡Listo!";
+        const winnerID = winnerData.id;
+        console.log('[REGISTRO] Ganador guardado. ID:', winnerID);
 
-        setTimeout(() => {
-          const params = new URLSearchParams({
-            folio: folio,
-            nombre: nombre,
-            correo: correo,
-            telefono: telefono,
-            titulo: titulo,
-            ubicacion: ubicacion
-          });
-          window.location.href = `boleto.html?${params.toString()}`;
-        }, 800);
+        // 2. Insertar o VINCLULAR el RECORD DEL QUIZ
+        let quizDbId = null;
+        try { quizDbId = localStorage.getItem('much_quiz_db_id'); } catch (_) { }
+
+        const quizRaw = localStorage.getItem('much_quiz_final_data');
+        let qData = {};
+        if (quizRaw) qData = JSON.parse(quizRaw);
+
+        if (quizDbId) {
+          console.log('[REGISTRO] Vinculando Quiz existente:', quizDbId);
+
+          const updatePayload = {
+            participante_id: winnerID,
+            estatus: 'finalizado'
+          };
+
+          if (qData.puntaje_total !== undefined) {
+            updatePayload.puntaje_total = qData.puntaje_total;
+            updatePayload.num_correctas = qData.num_correctas;
+            updatePayload.num_preguntas = qData.num_preguntas;
+            updatePayload.finished_at = qData.finished_at || new Date().toISOString();
+          }
+
+          const { error: quizUpdateError } = await supabaseClient
+            .from('quizzes')
+            .update(updatePayload)
+            .eq('id', quizDbId);
+
+          if (quizUpdateError) console.error('Error vinculando quiz:', quizUpdateError);
+          else console.log('✅ Quiz vinculado al ganador correctamente.');
+
+        } else if (qData.sala_id) {
+          console.log('[REGISTRO] Insertando Quiz nuevo (Fallback)');
+          const quizPayload = {
+            sala_id: qData.sala_id,
+            participante_id: winnerID,
+            started_at: qData.started_at,
+            finished_at: qData.finished_at,
+            puntaje_total: qData.puntaje_total,
+            num_correctas: qData.num_correctas,
+            num_preguntas: qData.num_preguntas,
+            estatus: 'finalizado'
+          };
+
+          const { error: quizError } = await supabaseClient
+            .from('quizzes')
+            .insert(quizPayload);
+
+          if (quizError) console.error('Error guardando Quiz (Fallback):', quizError.message);
+          else console.log('✅ Quiz guardado correctamente linked a ganador (Fallback).');
+        }
 
       } catch (err) {
-        console.error("Error Supabase:", err);
-        // Alerta amigable si faltan las columnas en la base de datos
-        if (err.message && err.message.includes('column')) {
-          alert("Error: Faltan columnas en la tabla 'Ganadores'.");
-        } else {
-          alert("Hubo un error al conectar con el servidor. Por favor intenta de nuevo.");
-        }
-        btn.disabled = false;
-        btn.textContent = "Obtener mi Boleto";
-        btn.style.background = "";
+        console.error('Error general guardarEnSupabase:', err);
       }
-    });
-    document.addEventListener('DOMContentLoaded', () => {
-      const modal = document.getElementById('infoModal');
-      const closeBtn = document.getElementById('modalCloseBtn');
+    }
 
-      // Show the modal by default
-      modal.style.display = 'flex';
+    // ---------- Submit ----------
+    let submitting = false;
 
-      // Hide the modal on button click
-      closeBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
+    $('registroForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (submitting) return;
+      submitting = true;
+      $('submitBtn').setAttribute('disabled', 'disabled');
+
+      const nombre = $('nombre').value;
+      const correo = $('correo').value;
+      const telefono = $('telefono').value;
+
+      let ok = true;
+      const nErr = validateNombre(nombre); if (nErr) { ok = false; setError($('nombre'), $('err-nombre'), nErr); } else { clearError($('nombre'), $('err-nombre')); }
+      const cErr = validateEmail(correo); if (cErr) { ok = false; setError($('correo'), $('err-correo'), cErr); } else { clearError($('correo'), $('err-correo')); }
+      const tErr = validatePhone(telefono); if (tErr) { ok = false; setError($('telefono'), $('err-telefono'), tErr); } else { clearError($('telefono'), $('err-telefono')); }
+
+      if (!ok) {
+        submitting = false;
+        $('submitBtn').removeAttribute('disabled');
+        return;
+      }
+
+      let prizeData = null;
+      try {
+        const raw = localStorage.getItem('much_quiz_prize');
+        if (raw) prizeData = JSON.parse(raw);
+      } catch (_) { }
+
+      if (!prizeData) {
+        const folio = 'MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        prizeData = {
+          title: 'MUCH · Premio',
+          label: 'Entrada al Museo MUCH',
+          lugar: 'Museo Chiapas (MUCH)',
+          folio: folio,
+          date: new Date().toISOString(),
+          emoji: '🎁',
+          sala: salaSlug
+        };
+        try { localStorage.setItem('much_quiz_prize', JSON.stringify(prizeData)); } catch (_) { }
+      }
+
+      // Guardar en BD
+      try {
+        await guardarEnSupabase(
+          nombre.trim().replace(/\s+/g, ' '),
+          correo.trim().toLowerCase(),
+          telefono.trim(),
+          prizeData
+        );
+      } catch (err) {
+        console.error('Error guardando en Supabase:', err);
+      }
+
+      const params = new URLSearchParams({
+        nombre: nombre.trim().replace(/\s+/g, ' '),
+        correo: correo.trim().toLowerCase(),
+        telefono: telefono.trim(),
+        premio: prizeData.label || '',
+        folio: prizeData.folio || '',
+        lugar: prizeData.lugar || '',
+        sala: salaSlug
       });
+
+      try { localStorage.removeItem('much_quiz_prize'); } catch (_) { }
+
+      window.location.href = 'boleto.html?' + params.toString();
+    });
+
+    // Validación en vivo
+    ['nombre', 'correo', 'telefono'].forEach(id => {
+      $(id).addEventListener('input', () => {
+        const map = {
+          nombre: [validateNombre, $('err-nombre')],
+          correo: [validateEmail, $('err-correo')],
+          telefono: [validatePhone, $('err-telefono')]
+        };
+        const [fn, errEl] = map[id];
+        const msg = fn($(id).value);
+        if (msg) setError($(id), errEl, msg); else clearError($(id), errEl);
+      });
+    });
+
+    const modal = document.getElementById('welcomeModal');
+    const closeBtn = document.getElementById('closeModalBtn');
+
+    setTimeout(() => modal.classList.add('active'), 100);
+
+    closeBtn.addEventListener('click', () => {
+      modal.classList.remove('active');
     });
   </script>
 </body>

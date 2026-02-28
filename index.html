@@ -13,111 +13,113 @@
 <body>
   <canvas id="confetti" class="confetti-canvas"></canvas>
 
-  <!-- Botón “fantasma” por si app.js lo busca (evita errores) -->
   <button id="startBtn" class="visually-hidden" hidden></button>
 
-  <!-- 🔁 REDIRECCIÓN: si entras directo a index, te llevo a portada -->
   <script>
     (function () {
-      var from = new URLSearchParams(location.search).get('from');
+      var params = new URLSearchParams(location.search);
+      var from = params.get('from');
+      var lugar = params.get('lugar');
+
+      // 🛡️ ATRAPAMOS EL LUGAR EN EL MILISEGUNDO 1 ANTES DE QUE SE PIERDA
+      if (lugar) {
+        localStorage.setItem('much_lugar_seguro', lugar);
+      }
+
       // Permite entrar si vienes desde la portada; si no, manda a portada.html
       if (from !== 'portada') {
-        location.replace('portada.html');
+        // Al redirigir, nos llevamos el enlace completo por si acaso
+        location.replace('portada.html' + location.search);
       }
     })();
   </script>
 
-  <!-- ====== QUIZ ====== -->
   <main id="quizShell">
     <div class="quiz-card">
-      <!-- Header Section -->
-      <!-- Row 1: Logos (Space Between) -->
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <div id="logoEmoji" class="logo">
-          <img src="Logo-Ag-14.png" alt="Agencia Digital Chiapas" class="logo__img">
+
+      <div class="header-section text-center mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+          <img src="Logo-Ag-14.png" alt="Gobierno de Chiapas" class="logo-header logo-left">
+          <img src="logo-sata.png" alt="SATA" class="logo-header logo-right">
         </div>
-        <div class="logo">
-          <img src="logo-sata.png" alt="Sata" class="logo__img" style="height: 48px; width: auto;">
+
+        <h1 class="app-title mb-0">MUCH · Quiz Interactivo</h1>
+        <p class="app-subtitle mb-0">Responde, aprende y ¡gana tu entrada! 🎁</p>
+      </div>
+
+      <div class="controls-row d-flex justify-content-center align-items-center gap-3 mb-4">
+        <div id="pillSala" class="sala-pill">Sala: Energía</div>
+
+        <div class="d-flex align-items-center gap-2 bg-light px-3 py-1 rounded-pill border">
+          <div class="form-check form-switch mb-0 min-h-0">
+            <input class="form-check-input" type="checkbox" id="soundToggle" checked>
+          </div>
+          <span id="timer" class="timer-text">⏰ 19:02</span>
         </div>
       </div>
 
-      <!-- Row 2: Title & Controls (Centered/Column on mobile) -->
-      <div class="d-flex flex-column align-items-center text-center mb-4">
-        <h1 class="h4 fw-bold mb-1" style="color: #1e293b;">MUCH • Quiz Interactivo</h1>
-        <span class="tiny mb-2" style="color: #64748b;">Responde, aprende y ¡gana tu entrada! 🎁</span>
-
-        <!-- Controls -->
-        <div class="d-flex align-items-center gap-2 mt-2">
-          <div id="pillSala" class="pill">Sala: Exploración</div>
-          <div class="d-flex align-items-center gap-2 bg-light rounded-pill px-2 py-1">
-            <div class="form-check form-switch m-0 min-h-0 d-flex align-items-center">
-              <input class="form-check-input mt-0" type="checkbox" id="soundToggle" checked
-                style="width: 2rem; height: 1rem;">
-            </div>
-            <span id="timer" class="tiny fw-bold text-danger">⏱ 18:05</span>
-          </div>
-        </div>
+      <div class="progress mb-4" style="height:4px;" role="progressbar">
+        <div id="bar" class="progress-bar" style="width:0%"></div>
       </div>
 
       <section id="quizView">
-        <div class="question-header mb-4">
-          <div class="d-flex flex-column align-items-start">
-            <div class="badge-question mb-2">PREGUNTA <span id="qIndex">1</span> DE <span id="qTotal">6</span></div>
-            <!-- Progress Bar Section -->
-            <div class="progress w-100" style="height: 6px; background: #f1f5f9;">
-              <div id="bar" class="progress-bar" style="width:0%; background-color: #3b82f6; border-radius: 999px;">
-              </div>
-            </div>
-          </div>
-        </div>
+        <div class="question-container text-center">
 
-        <div class="question-card">
-          <h2 id="qText" class="mb-4">¿Qué producto de Chiapas es famoso en todo el mundo?</h2>
-          <!-- Description hidden or styled subtly if needed -->
+          <div class="d-inline-block mb-3">
+            <span class="badge-question">
+              PREGUNTA <span id="qIndex">1</span> DE <span id="qTotal">6</span>
+            </span>
+          </div>
+
+          <h2 id="qText" class="question-text mb-4">¿...?</h2>
           <p id="qDesc" class="d-none">...</p>
-
-          <div id="options" class="row" role="group" aria-label="Opciones de respuesta">
-            <!-- Buttons will be injected here by JS -->
+          <div id="options" class="options-list d-flex flex-column gap-3 mb-4">
           </div>
-          <div id="status" class="fw-bold mt-2" aria-live="polite"></div>
 
-          <div class="mt-4 pt-2">
-            <button id="nextBtn" type="button" class="btn btn-primary rounded-pill px-4 py-2 fw-bold"
-              style="background-color: #3b82f6; border:none; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);">Siguiente
-              ➔</button>
-          </div>
+          <div id="status" class="status-msg fw-bold mb-3" aria-live="polite"></div>
+
+          <button id="nextBtn" type="button" class="btn btn-action w-100 py-3 rounded-4 fw-bold shadow-sm">
+            Siguiente ➡️
+          </button>
+
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top border-light">
-          <div class="fw-bold text-dark d-flex align-items-center gap-1">
-            <span style="color: #fbbf24;">⭐</span> Puntos: <strong id="points">0</strong>
+        <div class="footer-info text-center mt-4">
+          <div class="points-pill">
+            ⭐ Puntos: <strong id="points">0</strong>
           </div>
-          <div id="hint" class="small text-secondary fst-italic">Tip: solo puedes elegir una respuesta</div>
+          <p id="hint" class="tiny text-muted mt-2 mb-0">Tip: solo puedes elegir una respuesta</p>
         </div>
       </section>
 
-      <section id="finalView" class="d-none">
-        <div class="question-card">
-          <h2 id="finalTitle" class="h5">Resultados</h2>
-          <p id="finalMsg" class="tiny mb-3"></p>
+      <section id="finalView" class="d-none text-center py-4">
+        <h2 id="finalTitle" class="h4 fw-bold mb-2">Resultados</h2>
+        <p id="finalMsg" class="text-secondary mb-4"></p>
 
-          <p class="fs-5 fw-bold mb-1">⭐ Puntos: <span id="finalPoints">0</span></p>
-          <p class="tiny mb-3">Aciertos: <strong id="finalCorrect">0</strong> de <strong id="finalTotal">0</strong></p>
+        <div class="result-score mb-4">
+          <div class="display-4 fw-bold text-primary mb-0"><span id="finalPoints">0</span></div>
+          <small class="text-uppercase tracking-wider">Puntos Totales</small>
+        </div>
 
-          <div id="giftRow" class="d-flex gap-2 flex-wrap d-none">
-            <button id="openTicketBtn" class="btn btn-success">🎟️ Ver mi boleto</button>
-            <button id="playAgainBtn1" class="btn btn-outline-secondary">🔁 Jugar otra vez</button>
-          </div>
+        <p class="mb-4">
+          Aciertos: <strong id="finalCorrect">0</strong> de <strong id="finalTotal">0</strong>
+        </p>
 
-          <div id="retryRow" class="d-flex gap-2 flex-wrap d-none">
-            <button id="playAgainBtn2" class="btn btn-primary">🔁 Intentar de nuevo</button>
-          </div>
+        <div id="giftRow" class="d-flex flex-column gap-2 d-none">
+          <button id="openTicketBtn" class="btn btn-success w-100 py-3 rounded-4">🎟️ Ver mi boleto</button>
+          <button id="playAgainBtn1" class="btn btn-outline-secondary w-100 py-2 rounded-4">🔁 Jugar otra vez</button>
+        </div>
+
+        <div id="retryRow" class="d-flex flex-column gap-2 d-none">
+          <button id="playAgainBtn2" class="btn btn-primary w-100 py-3 rounded-4">🔁 Intentar de nuevo</button>
         </div>
       </section>
+
     </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
   <script src="app.js"></script>
 </body>
 
