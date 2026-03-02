@@ -1,0 +1,67 @@
+﻿[
+    {
+        "id":  2,
+        "created_at":  "2025-12-09T14:15:45.60715+00:00",
+        "nombre":  "Jesus Javier",
+        "correo":  "L21270661@tuxtla.tecnm.mx",
+        "telefono":  "9661289876",
+        "folio":  "MUCH-885344",
+        "valido_desde":  "2025-12-09T14:15:45.074+00:00",
+        "valido_hasta":  "2025-12-16T14:15:45.074+00:00",
+        "estatus":  "activo",
+        "tipo_entrada":  null,
+        "ubicacion":  null
+    },
+    {
+        "id":  4,
+        "created_at":  "2025-12-09T14:16:59.208016+00:00",
+        "nombre":  "rogelio cruz",
+        "correo":  "rogelio@tuxtla.tecnm.mx",
+        "telefono":  "9663456789",
+        "folio":  "MUCH-912367",
+        "valido_desde":  "2025-12-09T14:16:58.72+00:00",
+        "valido_hasta":  "2025-12-16T14:16:58.72+00:00",
+        "estatus":  "activo",
+        "tipo_entrada":  null,
+        "ubicacion":  null
+    },
+    {
+        "id":  6,
+        "created_at":  "2025-12-09T14:34:56.44012+00:00",
+        "nombre":  "Yordanni Antonio",
+        "correo":  "L21270661@tuxtla.tecnm.mx",
+        "telefono":  "5567890876",
+        "folio":  "MUCH-453869",
+        "valido_desde":  "2025-12-09T14:34:56.168+00:00",
+        "valido_hasta":  "2025-12-16T14:34:56.168+00:00",
+        "estatus":  "activo",
+        "tipo_entrada":  null,
+        "ubicacion":  null
+    },
+    {
+        "id":  7,
+        "created_at":  "2025-12-09T14:35:32.915089+00:00",
+        "nombre":  null,
+        "correo":  null,
+        "telefono":  null,
+        "folio":  null,
+        "valido_desde":  null,
+        "valido_hasta":  null,
+        "estatus":  "activo",
+        "tipo_entrada":  null,
+        "ubicacion":  null
+    },
+    {
+        "id":  8,
+        "created_at":  "2025-12-09T14:36:14.00303+00:00",
+        "nombre":  "Celia Lopez",
+        "correo":  "L21270661@tuxtla.tecnm.mx",
+        "telefono":  "2365758339",
+        "folio":  "MUCH-896361",
+        "valido_desde":  "2025-12-09T14:36:13.674+00:00",
+        "valido_hasta":  "2025-12-16T14:36:13.674+00:00",
+        "estatus":  "activo",
+        "tipo_entrada":  null,
+        "ubicacion":  null
+    }
+]

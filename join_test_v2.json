@@ -1,0 +1,17 @@
+﻿{
+    "value":  [
+                  {
+                      "id":  "46632e9f-464f-482a-8f6a-c252cf84d814",
+                      "sala_id":  null,
+                      "started_at":  "2026-01-14T21:45:22.174+00:00",
+                      "finished_at":  null,
+                      "puntaje_total":  0,
+                      "num_correctas":  0,
+                      "num_preguntas":  6,
+                      "estatus":  "\u0027activo\u0027",
+                      "participante_id":  217,
+                      "ubicacion":  null
+                  }
+              ],
+    "Count":  1
+}

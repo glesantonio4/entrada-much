@@ -1,0 +1,10 @@
+﻿id
+sala_id
+started_at
+finished_at
+puntaje_total
+num_correctas
+num_preguntas
+estatus
+participante_id
+ubicacion

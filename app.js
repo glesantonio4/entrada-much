@@ -26,8 +26,17 @@ let quizIniciando = false;
 const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
 
-// 🔒 ID EXACTO DE LA SALA "ENTRADA"
+// 🔒 MAPEADO DE IDs DE SALAS (Obtenidos de Supabase)
+const SALA_MAP = {
+  'energia': '08a6cc96-5323-42e0-89df-77a8c36e9705',
+  'spinosaurio': '0b4f04b0-5196-473d-8689-55d5f315df55',
+  'desarrollo_sustentable': '17fd001d-f6c5-4f98-ab25-d81624227bc2',
+  'biodiversidad': '4bdffb5f-1a55-4952-be0c-9d487550fb0c',
+  'entrada': '6d66b495-cf43-42c1-b7f8-627ceb6fe33d'
+};
+
 const SALA_ENTRADA_ID = '6d66b495-cf43-42c1-b7f8-627ceb6fe33d';
+const CURRENT_SALA_ID = SALA_MAP[SALA.toLowerCase()] || SALA_ENTRADA_ID;
 
 let supabase = null;
 
@@ -140,7 +149,7 @@ async function startQuizInDB() {
 
     // Insertar nuevo intento
     const payload = {
-      sala_id: SALA_ENTRADA_ID,
+      sala_id: CURRENT_SALA_ID,
       participante_id: ID_JUGADOR,
       started_at: getMexicoTime(),
       num_preguntas: NUM_QUESTIONS,
@@ -222,7 +231,7 @@ async function checkLimiteBoletos() {
     const { count, error } = await supabase
       .from('quizzes')
       .select('*', { count: 'exact', head: true })
-      .eq('sala_id', SALA_ENTRADA_ID)
+      .eq('sala_id', CURRENT_SALA_ID)
       .gte('finished_at', inicioDia)
       .lte('finished_at', finDia)
       .eq('num_correctas', NUM_QUESTIONS);
@@ -250,7 +259,7 @@ function startQuizLocal() {
 
 function saveQuizResultLocal(data) {
   const startTime = sessionStorage.getItem('much_quiz_start') || getMexicoTime();
-  const quizData = { ...data, sala_id: SALA_ENTRADA_ID, started_at: startTime, finished_at: getMexicoTime() };
+  const quizData = { ...data, sala_id: CURRENT_SALA_ID, started_at: startTime, finished_at: getMexicoTime() };
 
   localStorage.setItem('much_quiz_final_data', JSON.stringify(quizData));
 
