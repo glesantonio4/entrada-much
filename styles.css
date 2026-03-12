@@ -36,26 +36,26 @@ body {
   display: none !important;
 }
 
+/* ====== Header section ====== */
+.header-section {
+  overflow: hidden;
+  width: 100%;
+}
+
 /* ====== Logos del header ====== */
 .logo-header {
-  height: 48px;
-  width: auto;
-  max-width: 45%;
+  height: 48px !important;
+  max-height: 48px !important;
+  width: auto !important;
+  max-width: 45% !important;
   object-fit: contain;
+  display: block;
   background: transparent;
   border: none;
   box-shadow: none;
   border-radius: 0;
   padding: 0;
   margin: 0;
-}
-
-.logo-left {
-  /* Logo gobierno – puede ser más ancho */
-}
-
-.logo-right {
-  /* Logo SATA */
 }
 
 /* ====== Contenedor del QUIZ ====== */
@@ -79,6 +79,7 @@ body {
   position: relative;
   border: none;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .quiz-card::before {
@@ -315,8 +316,9 @@ body {
 
   /* Header logos */
   .logo-header {
-    height: 36px;
-    max-width: 42%;
+    height: 36px !important;
+    max-height: 36px !important;
+    max-width: 40% !important;
   }
 
   /* Título */
@@ -417,7 +419,9 @@ body {
   }
 
   .logo-header {
-    height: 30px;
+    height: 28px !important;
+    max-height: 28px !important;
+    max-width: 38% !important;
   }
 
   .app-title {
