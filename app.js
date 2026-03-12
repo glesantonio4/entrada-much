@@ -451,10 +451,9 @@ class UIManager {
           this.currentPrize = prize;
 
           e.finalTitle.textContent = '¡Felicidades!';
-          e.finalMsg.textContent = '¡Has ganado un boleto!';
+          e.finalMsg.textContent = '¡Has ganado un boleto! Presiona "Ver mi boleto" 🎟️';
           e.giftRow.classList.remove('d-none');
-
-          setTimeout(() => this.redirectToRegistration(), 500);
+          this.confetti.launch(120);
         }
         return;
       } else {
