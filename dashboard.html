@@ -214,7 +214,6 @@
       background: var(--success);
       border-radius: 50%;
       box-shadow: 0 0 10px var(--success);
-      animation: pulse 2s infinite;
     }
 
     @keyframes pulse {
@@ -377,7 +376,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 20px;
-      overflow: hidden;
+      overflow-x: auto;
     }
 
     table {
@@ -480,6 +479,22 @@
 
     ::-webkit-scrollbar-thumb:hover {
       background: #334155;
+    }
+
+    .btn-delete {
+      background: transparent;
+      border: 0;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      transition: 0.2s;
+      font-size: 16px;
+    }
+
+    .btn-delete:hover {
+      color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
     }
   </style>
 </head>
@@ -591,6 +606,7 @@
                 <th>Puntaje</th>
                 <th>Estatus</th>
                 <th>ID</th>
+                <th style="width:50px"></th>
               </tr>
             </thead>
             <tbody id="tbody"></tbody>
@@ -643,6 +659,13 @@
         this.rooms = [];
       }
 
+      async deleteRecord(id, salaNombre) {
+        const table = salaNombre.includes('Spinosaurio') ? 'intentos_juego' : 'quizzes';
+        const { error } = await this.client.from(table).delete().eq('id', id);
+        if (error) throw error;
+        return true;
+      }
+
       async fetchInitialData() {
         const { data: rooms } = await this.client.from('salas').select('*');
         this.rooms = rooms || [];
@@ -654,79 +677,102 @@
         return count || 0;
       }
 
+      async fetchUbicaciones(fecha = null) {
+        let iQuery = this.client.from('intentos_juego').select('ubicacion');
+        let qQuery = this.client.from('quizzes').select('ubicacion');
+
+        if (fecha) {
+          iQuery = iQuery.gte('created_at', `${fecha}T00:00:00Z`).lte('created_at', `${fecha}T23:59:59Z`);
+          qQuery = qQuery.gte('started_at', `${fecha}T00:00:00Z`).lte('started_at', `${fecha}T23:59:59Z`);
+        } else {
+          // Si no hay fecha, traemos los más recientes para asegurar que las nuevas ubicaciones aparezcan
+          iQuery = iQuery.order('created_at', { ascending: false }).limit(1000);
+          qQuery = qQuery.order('started_at', { ascending: false }).limit(1000);
+        }
+
+        const { data: intentos } = await iQuery;
+        const { data: quizzes } = await qQuery;
+
+        const all = [...(intentos || []), ...(quizzes || [])];
+        const unique = [...new Set(
+          all.map(r => {
+            let u = (r.ubicacion || '').trim().toLowerCase();
+            // 💡 NORMALIZACIÓN AGRESIVA: Quitamos todos los números y guiones bajos para agrupar mejor
+            u = u.replace(/\d+/g, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+            return u;
+          }).filter(u => u && u !== 'sin especificar')
+        )];
+
+        const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+        return unique.sort().map(capitalize);
+      }
+
       async fetchUnifiedData(filters = {}) {
         try {
-          // Fetch from quizzes
+          // 1. Traer datos de Quizzes (Salas normales)
           let qQuery = this.client.from('quizzes').select('*, salas(nombre)').order('started_at', { ascending: false });
+          if (filters.fecha) qQuery = qQuery.gte('started_at', `${filters.fecha}T00:00:00Z`).lte('started_at', `${filters.fecha}T23:59:59Z`);
+          const { data: quizzes } = await qQuery;
 
-          if (filters.fecha) {
-            qQuery = qQuery.gte('started_at', `${filters.fecha}T00:00:00Z`).lte('started_at', `${filters.fecha}T23:59:59Z`);
-          }
-          if (filters.estatus) {
-            if (filters.estatus === 'activo') qQuery = qQuery.or('estatus.eq.activo,estatus.is.null');
-            else qQuery = qQuery.eq('estatus', filters.estatus);
-          }
-
-          const { data: quizzes, error: qErr } = await qQuery;
-          if (qErr) throw qErr;
-
-          // Fetch from intentos_juego (Data Unification)
-          let iQuery = this.client.from('intentos_juego').select('*, salas(nombre)').order('created_at', { ascending: false });
+          // 2. Traer datos de Intentos (Juego Espinosaurio)
+          let iQuery = this.client.from('intentos_juego').select('*').order('created_at', { ascending: false });
           if (filters.fecha) {
             iQuery = iQuery.gte('created_at', `${filters.fecha}T00:00:00Z`).lte('created_at', `${filters.fecha}T23:59:59Z`);
+          } else {
+            iQuery = iQuery.limit(1000); // Evitar saturación pero traer suficientes
+          }
+          const { data: intentos, error: iError } = await iQuery;
+
+          console.log(`📊 Unified Sync: ${quizzes?.length || 0} Quizzes, ${intentos?.length || 0} Intentos`);
+
+          if (iError) console.error("❌ Error al leer intentos_juego:", iError.message);
+
+          // DIAGNÓSTICO: Loguear los últimos 3 intentos crudos para verificar formato
+          if (intentos && intentos.length > 0) {
+            console.log("🦖 Muestra de intentos_juego (DB):", intentos.slice(0, 3));
           }
 
-          const { data: intentos, error: iErr } = await iQuery;
-
-          // Unify and normalize
+          // 3. Unificar con BLINDAJE para el Dino
           const unified = [
-            ...(quizzes || []).map(q => {
-              let loc = (q.ubicacion || 'Sin Especificar').trim();
-              // Normalización a Proper Case
-              loc = loc.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-              if (loc === 'Directo En Museo' || loc === 'Entrada') loc = 'Sin Especificar';
-
-              const roomName = q.salas?.nombre || ROOM_MAP[q.sala_id] || 'Sala General';
-
-              return {
-                id: q.id,
-                fecha: q.started_at,
-                sala_id: q.sala_id,
-                sala_nombre: roomName,
-                ubicacion: loc,
-                puntaje: q.puntaje_total || 0,
-                estatus: q.estatus || 'activo'
-              };
-            }),
-            ...(intentos || []).map(i => {
-              let loc = (i.ubicacion || 'Sin Especificar').trim();
-              // Normalización a Proper Case
-              loc = loc.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-              if (loc === 'Directo En Museo' || loc === 'Entrada') loc = 'Sin Especificar';
-
-              const roomName = i.salas?.nombre || ROOM_MAP[i.sala_id] || 'Sala General';
-
-              return {
-                id: i.id,
-                fecha: i.created_at,
-                sala_id: i.sala_id,
-                sala_nombre: roomName,
-                ubicacion: loc,
-                puntaje: i.puntaje || 0,
-                estatus: i.status || 'finalizado'
-              };
-            })
+            ...(quizzes || []).map(q => ({
+              id: q.id, fecha: q.started_at,
+              sala_id: q.sala_id,
+              sala_nombre: q.salas ? q.salas.nombre : (ROOM_MAP[q.sala_id] || 'Sala Desconocida'),
+              ubicacion: q.ubicacion || 'Sin Especificar',
+              puntaje: q.puntaje || 0,
+              estatus: q.estatus || 'finalizado'
+            })),
+            ...(intentos || []).map(i => ({
+              id: i.id, fecha: i.created_at,
+              sala_id: '0b4f04b0-5196-473d-8689-55d5f315df55',
+              sala_nombre: '🦖 Spinosaurio',
+              ubicacion: (i.ubicacion || 'Sin Especificar').trim(),
+              puntaje: i.puntaje || 0,
+              estatus: 'finalizado'
+            }))
           ];
 
-          // Sort by date desc
-          this.records = unified.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+          // Ordenar por fecha (más reciente arriba) - Blindaje para formatos de fecha mixtos
+          this.records = unified.sort((a, b) => {
+            const da = new Date(a.fecha).getTime() || 0;
+            const db = new Date(b.fecha).getTime() || 0;
+            return db - da;
+          });
 
-          // Filter by local filters
+          // 4. Aplicar filtros locales
           let filtered = this.records;
           if (filters.sala) {
             filtered = filtered.filter(r => r.sala_id === filters.sala || r.sala_nombre === filters.sala);
           }
-          if (filters.ubicacion) filtered = filtered.filter(r => r.ubicacion === filters.ubicacion);
+          if (filters.ubicacion) {
+            const f = filters.ubicacion.trim().toLowerCase();
+            filtered = filtered.filter(r => {
+              const ubi = (r.ubicacion || '').trim().toLowerCase();
+              // Normalización básica para que "parque" coincida con "Parque la Marimba"
+              return ubi.includes(f) || f.includes(ubi);
+            });
+          }
+          if (filters.estatus) filtered = filtered.filter(r => r.estatus === filters.estatus);
 
           return filtered;
         } catch (e) {
@@ -734,11 +780,10 @@
           return [];
         }
       }
+      /**
+       * ChartEngine: Manages the visualization components.
+       */
     }
-
-    /**
-     * ChartEngine: Manages the visualization components.
-     */
     class ChartEngine {
       constructor(canvasId) {
         this.ctx = document.getElementById(canvasId).getContext('2d');
@@ -859,6 +904,8 @@
         this.bindEvents();
         const rooms = await this.dm.fetchInitialData();
         this.populateRooms(rooms);
+        const ubicaciones = await this.dm.fetchUbicaciones();
+        this.populatePOIs(ubicaciones);
         this.refresh();
         setInterval(() => this.refresh(), 60000);
       }
@@ -924,11 +971,10 @@
         }
       }
 
-      populatePOIs(records) {
-        const pois = [...new Set(records.map(r => r.ubicacion).filter(u => u && u !== 'Directo en Museo'))];
+      populatePOIs(ubicaciones) {
         const current = this.els.selUbicacion.value;
         this.els.selUbicacion.innerHTML = '<option value="">Todas las ubicaciones</option>';
-        pois.forEach(p => {
+        ubicaciones.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p; opt.textContent = p;
           this.els.selUbicacion.appendChild(opt);
@@ -947,7 +993,8 @@
         const data = await this.dm.fetchUnifiedData(filters);
         const winnersCount = await this.dm.getGlobalMetrics();
 
-        this.populatePOIs(this.dm.records);
+        const ubicaciones = await this.dm.fetchUbicaciones(filters.fecha);
+        this.populatePOIs(ubicaciones);
         this.renderTable(data);
         this.updateStats(data, winnersCount);
 
@@ -963,15 +1010,34 @@
         data.forEach(r => {
           const tr = document.createElement('tr');
           const statusClass = r.estatus === 'canjeado' ? 'st-redeemed' : 'st-active';
+          const safeId = String(r.id).slice(0, 8);
           tr.innerHTML = `
             <td>${new Date(r.fecha).toLocaleString()}</td>
             <td><span style="color:var(--accent); font-weight:600">${r.sala_nombre}</span></td>
             <td>${r.ubicacion}</td>
             <td style="font-weight:800; color:white">${r.puntaje} pts</td>
             <td><span class="status-pill ${statusClass}">${r.estatus.toUpperCase()}</span></td>
-            <td style="font-family:monospace; font-size:11px; color:var(--text-muted)">${r.id.slice(0, 8)}...</td>
+            <td style="font-family:monospace; font-size:11px; color:var(--text-muted)">${safeId}...</td>
+            <td>
+              <button class="btn-delete" data-id="${r.id}" data-sala="${r.sala_nombre}" title="Eliminar registro">🗑️</button>
+            </td>
           `;
           this.els.tbody.appendChild(tr);
+        });
+
+        // Bind delete buttons
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const { id, sala } = btn.dataset;
+            if (confirm(`¿Estás seguro de que deseas eliminar este registro (${sala})?`)) {
+              try {
+                await this.dm.deleteRecord(id, sala);
+                this.refresh();
+              } catch (e) {
+                alert("Error al eliminar: " + e.message);
+              }
+            }
+          });
         });
         this.els.rowCount.textContent = `${data.length} registros encontrados`;
       }

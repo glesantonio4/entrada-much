@@ -15,13 +15,16 @@
   --font-main: system-ui, -apple-system, sans-serif;
 }
 
+/* ====== Prevent horizontal overflow globally ====== */
+html,
+body {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: var(--font-main);
   min-height: 100vh;
-  /* Mockup background: Purple to Pink/Fuchsia */
-  background: linear-gradient(135deg, #4f46e5 0%, #a21caf 100%);
-  /* Or closer to image: Indigo/Purple top-left to Pink bottom-right */
   background: linear-gradient(135deg, #6366f1 0%, #c026d3 50%, #db2777 100%);
   display: flex;
   align-items: center;
@@ -29,28 +32,30 @@ body {
   color: var(--text-dark);
 }
 
-/* Removing animation for now to match static elegant look of mockup, or keep simple */
-
-
 .hidden {
   display: none !important;
 }
 
-/* ====== Logo que también usa el quiz ====== */
-.logo__img {
-  height: 90px;
-  border-radius: 16px;
-  margin-bottom: 18px;
-  padding: 6px;
-  background: rgba(255, 255, 255, .95);
-  border: 1px solid color-mix(in srgb, var(--turquesa) 22%, white);
-  box-shadow: 0 10px 26px rgba(6, 182, 212, .25);
+/* ====== Logos del header ====== */
+.logo-header {
+  height: 48px;
+  width: auto;
+  max-width: 45%;
   object-fit: contain;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
 }
 
-.logo__img.small {
-  height: 56px;
-  margin-bottom: 0;
+.logo-left {
+  /* Logo gobierno – puede ser más ancho */
+}
+
+.logo-right {
+  /* Logo SATA */
 }
 
 /* ====== Contenedor del QUIZ ====== */
@@ -73,32 +78,29 @@ body {
   padding: 40px;
   position: relative;
   border: none;
+  box-sizing: border-box;
 }
 
-/* No bottom colored border in mockup */
 .quiz-card::before {
   display: none;
 }
 
-/* Header Elements */
-.logo__img {
-  height: 48px;
-  width: auto;
-  object-fit: contain;
-  margin: 0;
-  /* Mockup shows clean logo, no borders/backgrounds if png is transparent */
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
-  padding: 0;
+/* ====== Título y subtítulo ====== */
+.app-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 0.15rem;
 }
 
-.logo__img.small {
-  height: 40px;
+.app-subtitle {
+  font-size: 0.95rem;
+  color: var(--text-gray);
+  font-weight: 400;
 }
 
-.pill {
+/* ====== Controls row pills ====== */
+.sala-pill {
   background: #eff6ff;
   color: #2563eb;
   font-weight: 600;
@@ -108,35 +110,48 @@ body {
   border: none;
 }
 
+.timer-text {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+  white-space: nowrap;
+}
+
+.points-pill {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border-radius: 999px;
+  padding: 6px 16px;
+  display: inline-block;
+}
+
 .tiny {
   font-size: 0.85rem;
   color: var(--text-gray);
 }
 
-/* Progress Bar */
+/* ====== Progress Bar ====== */
 .progress {
   height: 6px;
   background: #f1f5f9;
   border-radius: 999px;
   overflow: hidden;
   margin-top: 8px;
-  /* Spacing */
 }
 
-.progress__bar {
+.progress-bar {
   background: #3b82f6;
-  /* Solid blue */
   box-shadow: none;
 }
 
-/* Question Section */
-.question-card {
-  /* In mockup, question is just text on the big card, not a separate card with border */
+/* ====== Question Section ====== */
+.question-container {
   background: transparent;
   border: none;
   box-shadow: none;
   padding: 0;
-  margin-top: 2rem;
 }
 
 .badge-question {
@@ -166,7 +181,7 @@ body {
   margin-bottom: 2rem;
 }
 
-/* Opciones as Grid */
+/* ====== Opciones as Grid ====== */
 #options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -177,8 +192,6 @@ body {
   width: 100%;
   padding: 0;
 }
-
-/* Reset bootstrap cols if we use grid on container */
 
 .option-btn {
   border: 1px solid transparent;
@@ -240,7 +253,31 @@ body {
   color: #3b82f6;
 }
 
-/* Confeti canvas */
+/* ====== Botón Siguiente ====== */
+.btn-action {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  color: #fff;
+  border: none;
+  font-size: 1.05rem;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.btn-action:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  color: #fff;
+}
+
+.btn-action:active {
+  transform: translateY(0);
+}
+
+/* ====== Status message ====== */
+.status-msg {
+  font-size: 1rem;
+}
+
+/* ====== Confeti canvas ====== */
 .confetti-canvas {
   position: fixed;
   inset: 0;
@@ -256,11 +293,9 @@ body {
   /* Global Layout */
   body {
     align-items: flex-start;
-    /* Allow scrolling from top */
     padding-top: 20px;
     padding-bottom: 20px;
     height: auto;
-    /* Allow body to grow */
     min-height: 100vh;
   }
 
@@ -273,53 +308,45 @@ body {
 
   .quiz-card {
     padding: 20px 16px;
-    /* Reduce horizontal padding slightly */
     border-radius: 20px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-    /* Lighter shadow on mobile */
     margin-bottom: 20px;
-    /* Ensure space at bottom */
   }
 
-  /* Header */
-  .logo__img {
+  /* Header logos */
+  .logo-header {
     height: 36px;
+    max-width: 42%;
   }
 
-  .logo__img.small {
-    height: 28px;
-  }
-
-  h1.h4 {
+  /* Título */
+  .app-title {
     font-size: 1.1rem;
-    margin-bottom: 0.25rem !important;
+    margin-bottom: 0.15rem;
+  }
+
+  .app-subtitle {
+    font-size: 0.8rem;
   }
 
   .tiny {
     font-size: 0.75rem;
   }
 
-  /* New Header Styles for Mobile */
-  .d-flex.align-items-center.justify-content-between.mb-2 {
-    width: 100%;
-    margin-bottom: 0.5rem !important;
-    /* Tighter gap */
+  /* Controls row */
+  .controls-row {
+    flex-wrap: wrap;
+    gap: 8px !important;
+    margin-bottom: 0.75rem !important;
   }
 
-  /* Logos should be sized properly */
-  .logo__img {
-    height: 40px;
+  .sala-pill {
+    font-size: 0.78rem;
+    padding: 4px 12px;
   }
 
-  /* Title & Controls Container */
-  .d-flex.flex-column.align-items-center.text-center.mb-4 {
-    width: 100%;
-    margin-bottom: 1rem !important;
-  }
-
-  /* Controls (Sala, Timer) */
-  .d-flex.align-items-center.gap-2.mt-2 {
-    margin-top: 0.25rem !important;
+  .timer-text {
+    font-size: 0.82rem;
   }
 
   /* Question Section */
@@ -328,13 +355,6 @@ body {
     margin-bottom: 1rem;
     text-align: center;
     line-height: 1.3;
-  }
-
-  .question-header {
-    display: flex;
-    justify-content: center;
-    text-align: center;
-    margin-bottom: 1rem !important;
   }
 
   .badge-question {
@@ -361,45 +381,28 @@ body {
     margin-right: 10px;
   }
 
-  /* Footer Visibility Fix */
-  .mt-5.pt-3 {
-    margin-top: 1rem !important;
-    /* Less separation from buttons */
-    padding-top: 0.75rem !important;
-    border-top: 1px solid #f1f5f9 !important;
-    /* lighter border */
-  }
-
-  .d-flex.justify-content-between.align-items-center.mt-5 {
-    display: flex !important;
-    /* Force display */
-    flex-direction: column;
-    gap: 8px;
-    text-align: center;
-    padding-bottom: 0;
-    /* Removing excess padding */
-  }
-
+  /* Botón Siguiente */
   #nextBtn {
     width: 100%;
     padding: 12px;
     font-size: 1rem;
     margin-bottom: 12px;
-    /* Space between btn and points */
   }
 
-  /* Ensure footer info is visible */
+  /* Footer info */
+  .footer-info {
+    margin-top: 1rem !important;
+  }
+
+  .points-pill {
+    font-size: 0.82rem;
+    padding: 5px 14px;
+  }
+
   #hint {
     font-size: 0.75rem;
     display: block;
-    order: 2;
-    /* Tip below points */
     margin-bottom: 0;
-  }
-
-  .text-dark.d-flex {
-    order: 1;
-    /* Points above hint */
   }
 }
 
@@ -413,7 +416,11 @@ body {
     padding: 14px;
   }
 
-  .logo__img {
-    height: 32px;
+  .logo-header {
+    height: 30px;
+  }
+
+  .app-title {
+    font-size: 1rem;
   }
 }

@@ -6,6 +6,9 @@ const SALA = params.get('sala') || 'Entrada';
 const LUGAR_EN_URL = params.get('lugar');
 if (LUGAR_EN_URL && LUGAR_EN_URL.trim() !== "") {
   localStorage.setItem('much_lugar_seguro', LUGAR_EN_URL);
+} else if (!LUGAR_EN_URL && window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+  // En desarrollo local sin parámetro, limpiamos cache para evitar datos viejos
+  localStorage.removeItem('much_lugar_seguro');
 }
 // Lo saca de la memoria (si no hay nada, pone Sin Especificar)
 const LUGAR_QR = localStorage.getItem('much_lugar_seguro') || 'Sin Especificar';
