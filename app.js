@@ -245,7 +245,7 @@ async function checkLimiteBoletos() {
     }
 
     console.log(`Boletos entregados hoy en esta sala: ${count}`);
-    return count >= 3;
+    return count >= 4;
 
   } catch (e) {
     console.error("Excepción en checkLimiteBoletos:", e);
