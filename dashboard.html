@@ -739,7 +739,7 @@
               sala_id: q.sala_id,
               sala_nombre: q.salas ? q.salas.nombre : (ROOM_MAP[q.sala_id] || 'Sala Desconocida'),
               ubicacion: q.ubicacion || 'Sin Especificar',
-              puntaje: q.puntaje || 0,
+              puntaje: q.puntaje_total ?? q.puntaje ?? 0,
               estatus: q.estatus || 'finalizado'
             })),
             ...(intentos || []).map(i => ({
@@ -747,7 +747,7 @@
               sala_id: '0b4f04b0-5196-473d-8689-55d5f315df55',
               sala_nombre: '🦖 Spinosaurio',
               ubicacion: (i.ubicacion || 'Sin Especificar').trim(),
-              puntaje: i.puntaje || 0,
+              puntaje: i.puntaje ?? 0,
               estatus: 'finalizado'
             }))
           ];

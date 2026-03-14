@@ -352,7 +352,7 @@
       el('tTitle').textContent = qs.get('titulo') || 'MUCH · Premio';
       el('tFolio').textContent = qs.get('folio') || 'Folio: ...';
       el('tNombre').textContent = qs.get('nombre') || '—';
-      el('tPremio').textContent = qs.get('titulo') || 'Entrada General'; // Usar el título dinámico
+      el('tPremio').textContent = qs.get('titulo') || 'Visita General(Museo + Planetario)'; // Usar el título dinámico
       el('tFecha').textContent = `${fmt.format(hoy)} al ${fmt.format(fin)}`;
       el('tLugar').innerHTML = qs.get('ubicacion') || 'Museo Chiapas'; // Usar la ubicación dinámica
       el('tCorreo').textContent = qs.get('correo') || '—';
@@ -424,17 +424,18 @@
             element.style.maxWidth = origMaxW;
 
             canvas.toBlob(async (blob) => {
-              const file = new File([blob], "Boleto_MUCH.png", { type: "image/png" });
+              const fileName = `Boleto_MUCH_${folio || Date.now()}.png`;
+              const file = new File([blob], fileName, { type: "image/png" });
 
               // Intento de compartir nativo (celular)
               if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                   await navigator.share({ files: [file], title: 'Mi Boleto MUCH', text: '¡Gané una entrada!' });
                   btnShare.textContent = '¡Enviado!';
-                } catch (err) { downloadImage(blob); }
+                } catch (err) { downloadImage(blob, fileName); }
               } else {
                 // Descarga en PC
-                downloadImage(blob);
+                downloadImage(blob, fileName);
                 alert("Imagen descargada. Compártela manualmente.");
               }
               setTimeout(() => { btnShare.textContent = originalText; btnShare.disabled = false; }, 2000);
@@ -446,8 +447,8 @@
         });
       }
 
-      function downloadImage(blob) {
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'Boleto_MUCH.png'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      function downloadImage(blob, fileName) {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fileName || 'Boleto_MUCH.png'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
       }
     });
   </script>
