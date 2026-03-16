@@ -7,6 +7,7 @@
   <title>Registro para obtener tu premio</title>
   <link rel="stylesheet" href="styles.css" />
 
+  <!-- Supabase JS (BASE MUCH) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -270,6 +271,7 @@
     </form>
   </div>
 
+  <!-- WELCOME MODAL -->
   <div id="welcomeModal" class="modal-overlay">
     <div class="modal-card">
       <span class="modal-icon">🎉</span>
@@ -284,10 +286,17 @@
     const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
     const SUPABASE_ANON_KEY =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+    const SUPABASE_PUBLIC_OPTIONS = {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    };
 
     let supabaseClient = null;
     if (window.supabase && typeof window.supabase.createClient === 'function') {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_PUBLIC_OPTIONS);
       console.log('[REGISTRO] Supabase client inicializado');
     } else {
       console.error('[REGISTRO] Supabase JS no disponible:', window.supabase);
@@ -295,9 +304,6 @@
 
     const qs = new URLSearchParams(location.search);
     const salaSlug = qs.get('sala') || 'energia';
-
-    // 🛡️ BLINDAJE NIVEL DIOS: Leer de la URL o sacarlo de la memoria PERMANENTE
-    const lugarDesdeURL = qs.get('lugar') || localStorage.getItem('much_lugar_seguro');
 
     // ---------- Validadores ----------
     const reNombre = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?:[ \t]+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ'.-]+){1,}$/;
@@ -337,21 +343,38 @@
     }
 
     // ---------- Guardar en Supabase ----------
-    async function guardarEnSupabase(nombre, correo, telefono, prizeData) {
-      if (!supabaseClient) {
-        console.warn('[REGISTRO] supabaseClient es null');
-        return;
+    function formatSupabaseError(context, error) {
+      const rawMessage = error?.message || 'Error desconocido.';
+      const message = `${context}: ${rawMessage}`;
+
+      if (/row-level security|permission denied|not allowed/i.test(rawMessage)) {
+        return `${message} Revisa las politicas RLS de Supabase para permitir INSERT/SELECT con la llave anon.`;
       }
 
-      try {
-        // 1. Insertar el GANADOR con datos completos
-        const folioNew = prizeData.folio || ('MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+      if (/failed to fetch|network|load failed/i.test(rawMessage)) {
+        return `${message} Verifica Internet, CORS o que el script de Supabase haya cargado correctamente.`;
+      }
 
+      return message;
+    }
+
+    function getTipoEntrada(prizeData) {
+      return prizeData?.acceso || prizeData?.label || prizeData?.premio || prizeData?.title || 'Premio';
+    }
+
+    async function guardarEnSupabaseLegacy(nombre, correo, telefono, prizeData) {
+      if (!supabaseClient) {
+        throw new Error('Supabase no se inicializo. Revisa la carga del script y la conexion a Internet.');
+      }
+
+      // 1. Insertar el GANADOR con datos completos
+      const folioNew = prizeData.folio || ('MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+
+      try {
+
+        // Calcular vigencia (30 días por defecto)
         const validUntil = new Date();
         validUntil.setDate(validUntil.getDate() + 30);
-
-        // 🌟 NUEVO: ELEGIR QUÉ UBICACIÓN GUARDAR 🌟
-        const ubicacionFinal = lugarDesdeURL || prizeData.lugar || 'Museo Chiapas';
 
         const { data: winnerData, error: winnerError } = await supabaseClient
           .from('Ganadores')
@@ -363,8 +386,8 @@
             valido_desde: new Date().toISOString(),
             valido_hasta: validUntil.toISOString(),
             estatus: 'activo',
-            tipo_entrada: prizeData.label || 'Premio',
-            ubicacion: ubicacionFinal
+            tipo_entrada: getTipoEntrada(prizeData),
+            ubicacion: prizeData.lugar || 'Museo Chiapas'
           })
           .select('id')
           .single();
@@ -375,6 +398,7 @@
         console.log('[REGISTRO] Ganador guardado. ID:', winnerID);
 
         // 2. Insertar o VINCLULAR el RECORD DEL QUIZ
+        // Intentamos usar el ID de la BD creado por app.js
         let quizDbId = null;
         try { quizDbId = localStorage.getItem('much_quiz_db_id'); } catch (_) { }
 
@@ -383,6 +407,8 @@
         if (quizRaw) qData = JSON.parse(quizRaw);
 
         if (quizDbId) {
+          // A) Si existe ID de quiz, lo ACTUALIZAMOS para vincularlo al participante real
+          // Y TAMBIEN aseguramos que el puntaje esté guardado (por si falló app.js)
           console.log('[REGISTRO] Vinculando Quiz existente:', quizDbId);
 
           const updatePayload = {
@@ -390,6 +416,7 @@
             estatus: 'finalizado'
           };
 
+          // Si tenemos datos locales, los reforzamos
           if (qData.puntaje_total !== undefined) {
             updatePayload.puntaje_total = qData.puntaje_total;
             updatePayload.num_correctas = qData.num_correctas;
@@ -406,6 +433,8 @@
           else console.log('✅ Quiz vinculado al ganador correctamente.');
 
         } else if (qData.sala_id) {
+          // B) Fallback: Si no hay ID de BD (se jugó offline o falló app.js), INSERTAMOS uno nuevo
+          // Esto garantiza que el ganador siempre tenga su registro de quiz
           console.log('[REGISTRO] Insertando Quiz nuevo (Fallback)');
           const quizPayload = {
             sala_id: qData.sala_id,
@@ -431,6 +460,95 @@
       }
     }
 
+    async function guardarEnSupabase(nombre, correo, telefono, prizeData) {
+      if (!supabaseClient) {
+        throw new Error('Supabase no se inicializo. Revisa la carga del script y la conexion a Internet.');
+      }
+
+      const folioNew = prizeData.folio || ('MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 30);
+
+      const winnerPayload = {
+        nombre,
+        correo,
+        telefono,
+        folio: folioNew,
+        valido_desde: new Date().toISOString(),
+        valido_hasta: validUntil.toISOString(),
+        estatus: 'activo',
+        tipo_entrada: getTipoEntrada(prizeData),
+        ubicacion: prizeData.lugar || 'Museo Chiapas'
+      };
+
+      const { data: winnerData, error: winnerError } = await supabaseClient
+        .from('Ganadores')
+        .insert(winnerPayload)
+        .select('id')
+        .maybeSingle();
+
+      if (winnerError) {
+        throw new Error(formatSupabaseError('Error guardando en la tabla Ganadores', winnerError));
+      }
+
+      const winnerID = winnerData?.id ?? null;
+      console.log('[REGISTRO] Ganador guardado. ID:', winnerID ?? '(sin ID retornado)');
+
+      try {
+        let quizDbId = null;
+        try { quizDbId = localStorage.getItem('much_quiz_db_id'); } catch (_) { }
+
+        const quizRaw = localStorage.getItem('much_quiz_final_data');
+        let qData = {};
+        if (quizRaw) qData = JSON.parse(quizRaw);
+
+        if (quizDbId) {
+          console.log('[REGISTRO] Actualizando Quiz existente:', quizDbId);
+
+          const updatePayload = {
+            estatus: 'finalizado'
+          };
+
+          if (qData.puntaje_total !== undefined) {
+            updatePayload.puntaje_total = qData.puntaje_total;
+            updatePayload.num_correctas = qData.num_correctas;
+            updatePayload.num_preguntas = qData.num_preguntas;
+            updatePayload.finished_at = qData.finished_at || new Date().toISOString();
+          }
+
+          const { error: quizUpdateError } = await supabaseClient
+            .from('quizzes')
+            .update(updatePayload)
+            .eq('id', quizDbId);
+
+          if (quizUpdateError) console.error('[REGISTRO] Error actualizando quiz:', quizUpdateError);
+          else console.log('[REGISTRO] Quiz actualizado correctamente.');
+        } else if (qData.sala_id) {
+          console.log('[REGISTRO] Insertando Quiz nuevo (Fallback)');
+          const quizPayload = {
+            sala_id: qData.sala_id,
+            started_at: qData.started_at,
+            finished_at: qData.finished_at,
+            puntaje_total: qData.puntaje_total,
+            num_correctas: qData.num_correctas,
+            num_preguntas: qData.num_preguntas,
+            estatus: 'finalizado'
+          };
+
+          const { error: quizError } = await supabaseClient
+            .from('quizzes')
+            .insert(quizPayload);
+
+          if (quizError) console.error('[REGISTRO] Error guardando Quiz (Fallback):', quizError.message);
+          else console.log('[REGISTRO] Quiz guardado correctamente (Fallback).');
+        }
+      } catch (quizErr) {
+        console.warn('[REGISTRO] Ganador guardado, pero no se pudo enlazar el quiz:', quizErr);
+      }
+
+      return { winnerID, folio: folioNew };
+    }
+
     // ---------- Submit ----------
     let submitting = false;
 
@@ -439,6 +557,7 @@
       if (submitting) return;
       submitting = true;
       $('submitBtn').setAttribute('disabled', 'disabled');
+      $('submitBtn').textContent = 'Guardando...';
 
       const nombre = $('nombre').value;
       const correo = $('correo').value;
@@ -452,15 +571,18 @@
       if (!ok) {
         submitting = false;
         $('submitBtn').removeAttribute('disabled');
+        $('submitBtn').textContent = 'Obtener mi Boleto';
         return;
       }
 
+      // Premio generado por el quiz (much_quiz_prize)
       let prizeData = null;
       try {
         const raw = localStorage.getItem('much_quiz_prize');
         if (raw) prizeData = JSON.parse(raw);
       } catch (_) { }
 
+      // Plan B si no hay nada en localStorage
       if (!prizeData) {
         const folio = 'MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         prizeData = {
@@ -485,20 +607,32 @@
         );
       } catch (err) {
         console.error('Error guardando en Supabase:', err);
+        alert('No se pudo guardar el ganador en la base de datos.\n\n' + (err?.message || err));
+        submitting = false;
+        $('submitBtn').removeAttribute('disabled');
+        $('submitBtn').textContent = 'Obtener mi Boleto';
+        return;
       }
 
+      // Parámetros para boleto.html
+      const tipoEntrada = getTipoEntrada(prizeData);
       const params = new URLSearchParams({
         nombre: nombre.trim().replace(/\s+/g, ' '),
         correo: correo.trim().toLowerCase(),
         telefono: telefono.trim(),
-        premio: prizeData.label || '',
+        acceso: tipoEntrada,
+        premio: tipoEntrada,
+        titulo: prizeData.title || tipoEntrada,
         folio: prizeData.folio || '',
+        ubicacion: prizeData.lugar || '',
         lugar: prizeData.lugar || '',
         sala: salaSlug
       });
 
+      // Evitar doble canje desde el mismo dispositivo
       try { localStorage.removeItem('much_quiz_prize'); } catch (_) { }
 
+      $('submitBtn').textContent = 'Generando boleto...';
       window.location.href = 'boleto.html?' + params.toString();
     });
 
@@ -516,15 +650,15 @@
       });
     });
 
+    // Modal Control
     const modal = document.getElementById('welcomeModal');
     const closeBtn = document.getElementById('closeModalBtn');
 
+    // Auto-show modal
     setTimeout(() => modal.classList.add('active'), 100);
 
+    // Close logic
     closeBtn.addEventListener('click', () => {
       modal.classList.remove('active');
     });
   </script>
-</body>
-
-</html>

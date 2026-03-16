@@ -134,22 +134,51 @@
 
     const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const SUPABASE_PUBLIC_OPTIONS = {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    };
+    const DAILY_TICKET_LIMIT = 50;
+    const NUM_QUESTIONS = 6;
+    const qs = new URLSearchParams(window.location.search);
+    const salaSlug = (qs.get('sala') || 'entrada').toLowerCase();
+    const SALA_MAP = {
+      energia: '08a6cc96-5323-42e0-89df-77a8c36e9705',
+      spinosaurio: '0b4f04b0-5196-473d-8689-55d5f315df55',
+      desarrollo_sustentable: '17fd001d-f6c5-4f98-ab25-d81624227bc2',
+      biodiversidad: '4bdffb5f-1a55-4952-be0c-9d487550fb0c',
+      entrada: '6d66b495-cf43-42c1-b7f8-627ceb6fe33d'
+    };
+    const currentSalaId = SALA_MAP[salaSlug] || SALA_MAP.entrada;
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_PUBLIC_OPTIONS);
 
     async function verificarDisponibilidad() {
+      const playBtn = document.getElementById('playBtn');
+      if (playBtn) {
+        const extraParams = window.location.search ? `&${window.location.search.slice(1)}` : '';
+        playBtn.href = `index.html?from=portada${extraParams}`;
+      }
+
       // 1. Definir el rango de hoy
       const hoy = new Date();
-      const inicioDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0).toISOString();
-      const finDelDia = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 23, 59, 59).toISOString();
+      const offsetMexico = hoy.getTimezoneOffset() * 60000;
+      const localTime = new Date(hoy.getTime() - offsetMexico);
+      const fechaHoyStr = localTime.toISOString().split('T')[0];
+      const inicioDelDia = `${fechaHoyStr}T00:00:00.000Z`;
+      const finDelDia = `${fechaHoyStr}T23:59:59.999Z`;
 
       // 2. Consulta a Supabase
       try {
         const { count, error } = await supabase
-          .from('Ganadores')
+          .from('quizzes')
           .select('*', { count: 'exact', head: true })
-          .neq('folio', null)
-          .gte('created_at', inicioDelDia)
-          .lte('created_at', finDelDia);
+          .eq('sala_id', currentSalaId)
+          .gte('finished_at', inicioDelDia)
+          .lte('finished_at', finDelDia)
+          .eq('num_correctas', NUM_QUESTIONS);
 
         if (error) {
           console.error('Error al verificar boletos:', error.message);
@@ -160,7 +189,7 @@
         const playBtn = document.getElementById('playBtn');
         const mensajeAgotado = document.getElementById('mensajeAgotado');
 
-        if (count >= 10) {
+        if (count >= DAILY_TICKET_LIMIT) {
           if (playBtn) {
             playBtn.style.display = 'none';
           }
@@ -170,7 +199,7 @@
           }
           console.warn('Boletos diarios agotados. Límite: 10.');
         } else {
-          console.log(`Boletos disponibles: ${10 - count}`);
+          console.log(`Boletos disponibles: ${DAILY_TICKET_LIMIT - count}`);
            if (playBtn) {
             playBtn.style.display = 'block';
           }

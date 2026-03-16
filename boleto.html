@@ -349,12 +349,16 @@
       const hoy = new Date(); const fin = new Date(hoy); fin.setDate(hoy.getDate() + 7);
       const fmt = new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' });
 
-      el('tTitle').textContent = qs.get('titulo') || 'MUCH · Premio';
+      const acceso = qs.get('acceso') || qs.get('premio') || qs.get('titulo') || 'Visita General(Museo + Planetario)';
+      const titulo = qs.get('titulo') || acceso || 'MUCH · Premio';
+      const ubicacion = qs.get('ubicacion') || qs.get('lugar') || 'Museo Chiapas';
+
+      el('tTitle').textContent = titulo;
       el('tFolio').textContent = qs.get('folio') || 'Folio: ...';
       el('tNombre').textContent = qs.get('nombre') || '—';
-      el('tPremio').textContent = qs.get('titulo') || 'Visita General(Museo + Planetario)'; // Usar el título dinámico
+      el('tPremio').textContent = acceso;
       el('tFecha').textContent = `${fmt.format(hoy)} al ${fmt.format(fin)}`;
-      el('tLugar').innerHTML = qs.get('ubicacion') || 'Museo Chiapas'; // Usar la ubicación dinámica
+      el('tLugar').innerHTML = ubicacion;
       el('tCorreo').textContent = qs.get('correo') || '—';
       el('tTel').textContent = qs.get('telefono') || '—';
     })();

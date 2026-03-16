@@ -6,7 +6,7 @@ const SALA = params.get('sala') || 'Entrada';
 const LUGAR_EN_URL = params.get('lugar');
 if (LUGAR_EN_URL && LUGAR_EN_URL.trim() !== "") {
   localStorage.setItem('much_lugar_seguro', LUGAR_EN_URL);
-} else if (!LUGAR_EN_URL && window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+} else if (!LUGAR_EN_URL && (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost')) {
   // En desarrollo local sin parámetro, limpiamos cache para evitar datos viejos
   localStorage.removeItem('much_lugar_seguro');
 }
@@ -28,6 +28,14 @@ let quizIniciando = false;
 
 const SUPABASE_URL = 'https://qwgaeorsymfispmtsbut.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3Z2Flb3JzeW1maXNwbXRzYnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIzODcyODUsImV4cCI6MjA3Nzk2MzI4NX0.FThZIIpz3daC9u8QaKyRTpxUeW0v4QHs5sHX2s1U1eo';
+const SUPABASE_PUBLIC_OPTIONS = {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false
+  }
+};
+const DAILY_TICKET_LIMIT = 50;
 
 // 🔒 MAPEADO DE IDs DE SALAS (Obtenidos de Supabase)
 const SALA_MAP = {
@@ -47,7 +55,7 @@ let supabase = null;
 async function initSupabase() {
   if (supabase) return supabase;
   const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_PUBLIC_OPTIONS);
   return supabase;
 }
 
@@ -245,7 +253,7 @@ async function checkLimiteBoletos() {
     }
 
     console.log(`Boletos entregados hoy en esta sala: ${count}`);
-    return count >= 4;
+    return count >= DAILY_TICKET_LIMIT;
 
   } catch (e) {
     console.error("Excepción en checkLimiteBoletos:", e);
