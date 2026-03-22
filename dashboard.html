@@ -418,6 +418,11 @@
       color: var(--success);
     }
 
+    .st-none {
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text-muted);
+    }
+
     /* Charts Section */
     .charts-container {
       display: flex;
@@ -672,9 +677,32 @@
         return this.rooms;
       }
 
-      async getGlobalMetrics() {
-        const { count } = await this.client.from('Ganadores').select('*', { count: 'exact', head: true });
-        return count || 0;
+      async getTicketMetrics() {
+        const { count: total } = await this.client.from('Ganadores').select('*', { count: 'exact', head: true });
+        const { count: canjeados } = await this.client
+          .from('Ganadores')
+          .select('*', { count: 'exact', head: true })
+          .eq('estatus', 'canjeado');
+
+        return {
+          total: total || 0,
+          canjeados: canjeados || 0
+        };
+      }
+
+      async fetchWinnerStatusMap() {
+        const { data, error } = await this.client.from('Ganadores').select('id, estatus');
+        if (error) {
+          console.error("❌ Error al leer Ganadores:", error.message);
+          return new Map();
+        }
+
+        return new Map(
+          (data || []).map(row => [
+            String(row.id),
+            (row.estatus || 'activo').toLowerCase()
+          ])
+        );
       }
 
       async fetchUbicaciones(fecha = null) {
@@ -709,6 +737,7 @@
 
       async fetchUnifiedData(filters = {}) {
         try {
+          const winnerStatusMap = await this.fetchWinnerStatusMap();
           // 1. Traer datos de Quizzes (Salas normales)
           let qQuery = this.client.from('quizzes').select('*, salas(nombre)').order('started_at', { ascending: false });
           if (filters.fecha) qQuery = qQuery.gte('started_at', `${filters.fecha}T00:00:00Z`).lte('started_at', `${filters.fecha}T23:59:59Z`);
@@ -734,21 +763,27 @@
 
           // 3. Unificar con BLINDAJE para el Dino
           const unified = [
-            ...(quizzes || []).map(q => ({
-              id: q.id, fecha: q.started_at,
-              sala_id: q.sala_id,
-              sala_nombre: q.salas ? q.salas.nombre : (ROOM_MAP[q.sala_id] || 'Sala Desconocida'),
-              ubicacion: q.ubicacion || 'Sin Especificar',
-              puntaje: q.puntaje_total ?? q.puntaje ?? 0,
-              estatus: q.estatus || 'finalizado'
-            })),
+            ...(quizzes || []).map(q => {
+              const winnerStatus = q.participante_id != null
+                ? winnerStatusMap.get(String(q.participante_id))
+                : null;
+
+              return {
+                id: q.id, fecha: q.started_at,
+                sala_id: q.sala_id,
+                sala_nombre: q.salas ? q.salas.nombre : (ROOM_MAP[q.sala_id] || 'Sala Desconocida'),
+                ubicacion: q.ubicacion || 'Sin Especificar',
+                puntaje: q.puntaje_total ?? q.puntaje ?? 0,
+                estatus: winnerStatus || 'sin_boleto'
+              };
+            }),
             ...(intentos || []).map(i => ({
               id: i.id, fecha: i.created_at,
               sala_id: '0b4f04b0-5196-473d-8689-55d5f315df55',
               sala_nombre: '🦖 Spinosaurio',
               ubicacion: (i.ubicacion || 'Sin Especificar').trim(),
               puntaje: i.puntaje ?? 0,
-              estatus: 'finalizado'
+              estatus: 'sin_boleto'
             }))
           ];
 
@@ -991,12 +1026,12 @@
         };
 
         const data = await this.dm.fetchUnifiedData(filters);
-        const winnersCount = await this.dm.getGlobalMetrics();
+        const ticketMetrics = await this.dm.getTicketMetrics();
 
         const ubicaciones = await this.dm.fetchUbicaciones(filters.fecha);
         this.populatePOIs(ubicaciones);
         this.renderTable(data);
-        this.updateStats(data, winnersCount);
+        this.updateStats(data, ticketMetrics);
 
         if (this.currentView === 'charts') {
           this.ce.renderTopPOIs(this.dm.records);
@@ -1009,14 +1044,18 @@
         this.els.tbody.innerHTML = '';
         data.forEach(r => {
           const tr = document.createElement('tr');
-          const statusClass = r.estatus === 'canjeado' ? 'st-redeemed' : 'st-active';
+          const statusMeta = r.estatus === 'canjeado'
+            ? { className: 'st-redeemed', label: 'CANJEADO' }
+            : r.estatus === 'activo'
+              ? { className: 'st-active', label: 'ACTIVO' }
+              : { className: 'st-none', label: 'SIN BOLETO' };
           const safeId = String(r.id).slice(0, 8);
           tr.innerHTML = `
             <td>${new Date(r.fecha).toLocaleString()}</td>
             <td><span style="color:var(--accent); font-weight:600">${r.sala_nombre}</span></td>
             <td>${r.ubicacion}</td>
             <td style="font-weight:800; color:white">${r.puntaje} pts</td>
-            <td><span class="status-pill ${statusClass}">${r.estatus.toUpperCase()}</span></td>
+            <td><span class="status-pill ${statusMeta.className}">${statusMeta.label}</span></td>
             <td style="font-family:monospace; font-size:11px; color:var(--text-muted)">${safeId}...</td>
             <td>
               <button class="btn-delete" data-id="${r.id}" data-sala="${r.sala_nombre}" title="Eliminar registro">🗑️</button>
@@ -1042,10 +1081,10 @@
         this.els.rowCount.textContent = `${data.length} registros encontrados`;
       }
 
-      updateStats(data, winnersCount) {
+      updateStats(data, ticketMetrics) {
         this.els.statQuizzes.textContent = data.length;
-        this.els.statCanjeados.textContent = data.filter(r => r.estatus === 'canjeado').length;
-        this.els.statTotalBoletos.textContent = winnersCount;
+        this.els.statCanjeados.textContent = ticketMetrics.canjeados;
+        this.els.statTotalBoletos.textContent = ticketMetrics.total;
       }
     }
 

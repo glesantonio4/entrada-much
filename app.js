@@ -14,6 +14,43 @@ if (LUGAR_EN_URL && LUGAR_EN_URL.trim() !== "") {
 const LUGAR_QR = localStorage.getItem('much_lugar_seguro') || 'Sin Especificar';
 
 const NUM_QUESTIONS = 6;
+function getPrizeDescriptor(prizeData) {
+  return [
+    prizeData?.key,
+    prizeData?.label,
+    prizeData?.title,
+    prizeData?.acceso,
+    prizeData?.premio
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function getPrizeFolioPrefix(prizeData) {
+  const descriptor = getPrizeDescriptor(prizeData);
+  if (descriptor.includes('planetario')) return 'PLAN';
+  if (descriptor.includes('visita general') || descriptor.includes('museo + planetario')) return 'VGMP';
+  return 'MUCH';
+}
+
+function getPrizeFolioLength(prizeData) {
+  const prefix = getPrizeFolioPrefix(prizeData);
+  if (prefix === 'PLAN') return 4;
+  if (prefix === 'VGMP') return 3;
+  return 2;
+}
+
+function buildRandomCode(length) {
+  let code = '';
+  while (code.length < length) {
+    code += Math.random().toString(36).slice(2).toUpperCase();
+  }
+  return code.slice(0, length);
+}
+
+function generatePrizeFolio(prizeData) {
+  const prefix = getPrizeFolioPrefix(prizeData);
+  const suffix = buildRandomCode(getPrizeFolioLength(prizeData));
+  return `${prefix}-${suffix}`;
+}
 // Función para mezclar arrays
 const shuffle = a => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
 
@@ -389,10 +426,11 @@ class UIManager {
   redirectToRegistration() {
     if (!this.currentPrize) return;
     const prizeData = {
+      key: this.currentPrize.key,
       title: this.currentPrize.title,
       label: this.currentPrize.label,
       lugar: this.currentPrize.lugar,
-      folio: 'MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
+      folio: generatePrizeFolio(this.currentPrize),
       date: new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date()),
       emoji: this.currentPrize.emoji
     };

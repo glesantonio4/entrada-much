@@ -362,13 +362,50 @@
       return prizeData?.acceso || prizeData?.label || prizeData?.premio || prizeData?.title || 'Premio';
     }
 
+    function getPrizeDescriptor(prizeData) {
+      return [
+        prizeData?.key,
+        getTipoEntrada(prizeData),
+        prizeData?.title
+      ].filter(Boolean).join(' ').toLowerCase();
+    }
+
+    function getPrizeFolioPrefix(prizeData) {
+      const descriptor = getPrizeDescriptor(prizeData);
+      if (descriptor.includes('planetario')) return 'PLAN';
+      if (descriptor.includes('visita general') || descriptor.includes('museo + planetario')) return 'VGMP';
+      return 'MUCH';
+    }
+
+    function getPrizeFolioLength(prizeData) {
+      const prefix = getPrizeFolioPrefix(prizeData);
+      if (prefix === 'PLAN') return 4;
+      if (prefix === 'VGMP') return 3;
+      return 2;
+    }
+
+    function buildRandomCode(length) {
+      let code = '';
+      while (code.length < length) {
+        code += Math.random().toString(36).slice(2).toUpperCase();
+      }
+      return code.slice(0, length);
+    }
+
+    function generatePrizeFolio(prizeData) {
+      const prefix = getPrizeFolioPrefix(prizeData);
+      const suffix = buildRandomCode(getPrizeFolioLength(prizeData));
+      return `${prefix}-${suffix}`;
+    }
+
     async function guardarEnSupabaseLegacy(nombre, correo, telefono, prizeData) {
       if (!supabaseClient) {
         throw new Error('Supabase no se inicializo. Revisa la carga del script y la conexion a Internet.');
       }
 
       // 1. Insertar el GANADOR con datos completos
-      const folioNew = prizeData.folio || ('MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+      const folioNew = prizeData.folio || generatePrizeFolio(prizeData);
+      prizeData.folio = folioNew;
 
       try {
 
@@ -465,7 +502,8 @@
         throw new Error('Supabase no se inicializo. Revisa la carga del script y la conexion a Internet.');
       }
 
-      const folioNew = prizeData.folio || ('MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase());
+      const folioNew = prizeData.folio || generatePrizeFolio(prizeData);
+      prizeData.folio = folioNew;
       const validUntil = new Date();
       validUntil.setDate(validUntil.getDate() + 30);
 
@@ -506,6 +544,7 @@
           console.log('[REGISTRO] Actualizando Quiz existente:', quizDbId);
 
           const updatePayload = {
+            participante_id: winnerID,
             estatus: 'finalizado'
           };
 
@@ -527,6 +566,7 @@
           console.log('[REGISTRO] Insertando Quiz nuevo (Fallback)');
           const quizPayload = {
             sala_id: qData.sala_id,
+            participante_id: winnerID,
             started_at: qData.started_at,
             finished_at: qData.finished_at,
             puntaje_total: qData.puntaje_total,
@@ -584,17 +624,20 @@
 
       // Plan B si no hay nada en localStorage
       if (!prizeData) {
-        const folio = 'MUCH-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         prizeData = {
           title: 'MUCH · Premio',
           label: 'Entrada al Museo MUCH',
           lugar: 'Museo Chiapas (MUCH)',
-          folio: folio,
           date: new Date().toISOString(),
           emoji: '🎁',
           sala: salaSlug
         };
+        prizeData.folio = generatePrizeFolio(prizeData);
         try { localStorage.setItem('much_quiz_prize', JSON.stringify(prizeData)); } catch (_) { }
+      }
+
+      if (!prizeData.folio) {
+        prizeData.folio = generatePrizeFolio(prizeData);
       }
 
       // Guardar en BD
